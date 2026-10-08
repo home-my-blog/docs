@@ -14,8 +14,6 @@ member 1 ── 1 blog N ── 1 topic
    │                 ├── N post_tag N ── 1 tag
    │                 ├── N post_report (member)
    │                 └── N post_image
-   ├── N community_post (topic) ── N community_comment
-   └── spring_session (principal_name = member.id)
 
 daily_stat (blog, post NULL 가능, date)     search_log (keyword, time)
 ```
@@ -40,10 +38,10 @@ daily_stat (blog, post NULL 가능, date)     search_log (keyword, time)
 - 비밀번호 규칙(8~10자, 영문·숫자·특수문자 각 1개 이상, 허용 특수문자 `!@#$%^&*()_+-=`)은 원문으로만
   검사하고 저장하지 않는다 (CF-01-4).
 
-## spring_session, spring_session_attributes — CF-02-10
+## 세션 — CF-02-10
 
-Spring Session JDBC 기본 스키마(Flyway로 생성). `PRINCIPAL_NAME`에 회원 id를 넣어 회원 기준 세션
-조회·삭제에 쓴다(CF-15-15, CF-25-8). 최대 비활성 7일. 만료 세션은 Spring Session의 정리 작업이 지운다.
+세션 표는 뺐다(2026-10-08). 로그인 세션은 서버 메모리에 두고, Spring Security `SessionRegistry`로 회원별
+세션을 찾아 끊는다(CF-15-15, CF-25-8). 최대 비활성 7일, 쓸 때마다 쿠키 만료를 늘린다.
 
 ## topic (주제) — 요구사항.md 1장, 3.3
 
@@ -171,23 +169,6 @@ Spring Session JDBC 기본 스키마(Flyway로 생성). `PRINCIPAL_NAME`에 회�
 인덱스: `(post_id, created_at)`(글 상세, 오래된 순), `(created_at)` + post→blog 조인(댓글 관리, 새 댓글 수).
 새 댓글 수 = 내 블로그 글의 댓글 중 `created_at > blog.comments_seen_at AND author_id <> 블로그 주인`.
 
-## community_post, community_comment (커뮤니티) — 요구사항.md 3.7
-
-| 표.칸 | 타입 | 제약 / 규칙 |
-|-------|------|-------------|
-| community_post.topic_id | bigint → topic | NOT NULL |
-| community_post.author_id | bigint → member | NULL 가능, ON DELETE SET NULL |
-| community_post.title | varchar(100) | NOT NULL. 1~100자 (블로그 글과 같게) |
-| community_post.body | text | NOT NULL. 1~10,000자, 평문 |
-| community_post.view_count | bigint | NOT NULL DEFAULT 0 |
-| community_post.created_at, content_updated_at | timestamptz | |
-| community_comment.post_id | bigint → community_post | ON DELETE CASCADE |
-| community_comment.author_id | bigint → member | NULL 가능, ON DELETE SET NULL |
-| community_comment.body | varchar(500) | 1~500자 |
-| community_comment.created_at | timestamptz | |
-
-조회 수 중복 방지는 글과 같은 방식(Redis 30분 키). 인덱스: `(topic_id, created_at DESC)`, 제목·본문 trigram.
-
 ## daily_stat (일별 통계) — BM-02, BM-06
 
 | 칸 | 타입 | 제약 / 규칙 |
@@ -219,7 +200,7 @@ Spring Session JDBC 기본 스키마(Flyway로 생성). `PRINCIPAL_NAME`에 회�
 | `verify:{purpose}:{email}:cooldown` | 60초 | 1분에 1번 (CF-01-16) |
 | `verify:{purpose}:{email}:daily:{yyyyMMdd}` | 24시간 | 하루 5번 (CF-01-16) |
 | `verify:{purpose}:{email}:verified` | 30분 | 인증됨 표시 (CF-01-20, CF-25-5) |
-| `view:post:{postId}:{vid}` · `view:community:{id}:{vid}` | 30분 | 조회수 중복 방지 (BM-06-3) |
+| `view:post:{postId}:{vid}` | 30분 | 조회수 중복 방지 (BM-06-3) |
 | `visit:{blogId}:{vid}:{yyyyMMdd}` | 한국 자정까지 | 방문자 하루 1번 (BM-06-4) |
 | `comment:cooldown:{memberId}` | 5초 | 댓글 연속 등록 방지 (CF-18-7) |
 

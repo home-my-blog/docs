@@ -1,5 +1,7 @@
 # Contract: REST API
 
+> **변경 (2026-10-08)**: 커뮤니티 API와 응답의 `communityPosts` 칸은 뺐다. 검색 응답은 `{ query, type, total, blogs, posts }`이다.
+
 기본 주소 `/api`. 요청·응답은 JSON(UTF-8), 시각은 ISO 8601(`+09:00`). 괄호는 원본 요구사항 ID.
 
 ## 공통 규칙
