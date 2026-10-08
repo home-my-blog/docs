@@ -98,4 +98,71 @@ class DiaryIT extends IntegrationTest {
                 .andExpect(jsonPath("$[0].count").value(2))
                 .andExpect(jsonPath("$[1].name").value("제주"));
     }
+
+    @Test
+    void pinnedPostsUpToThree() throws Exception {
+        MockHttpSession a = member("에이", "a@example.com");
+        MockHttpSession b = member("비이", "b@example.com");
+        long blog = blogIdOf(a);
+        long cat = defaultCategory(blog);
+        long p1 = write(a, blog, cat, "하나", List.of());
+        long p2 = write(a, blog, cat, "둘", List.of());
+        long p3 = write(a, blog, cat, "셋", List.of());
+        long p4 = write(a, blog, cat, "넷", List.of());
+
+        mvc.perform(put("/api/posts/" + p1 + "/pin").with(csrf()).session(b)).andExpect(status().isNotFound());
+        for (long id : new long[] {p2, p1, p3}) {
+            mvc.perform(put("/api/posts/" + id + "/pin").with(csrf()).session(a)).andExpect(jsonPath("$.pinned").value(true));
+        }
+        mvc.perform(put("/api/posts/" + p4 + "/pin").with(csrf()).session(a))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("PIN_LIMIT"));
+        mvc.perform(get("/api/blogs/" + blog + "/pinned"))
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].id").value(p2))
+                .andExpect(jsonPath("$[1].id").value(p1));
+        mvc.perform(get("/api/posts/" + p2).session(a)).andExpect(jsonPath("$.pinned").value(true));
+
+        // 해제하면 다시 고정할 수 있다. 비공개로 바꾼 대표글은 다른 사람에게 안 보인다
+        mvc.perform(put("/api/posts/" + p1 + "/pin").with(csrf()).session(a)).andExpect(jsonPath("$.pinned").value(false));
+        mvc.perform(put("/api/posts/" + p4 + "/pin").with(csrf()).session(a)).andExpect(jsonPath("$.pinned").value(true));
+        jdbc.sql("UPDATE posts SET visibility = 'PRIVATE' WHERE id = ?").param(p3).update();
+        mvc.perform(get("/api/blogs/" + blog + "/pinned").session(b)).andExpect(jsonPath("$.length()").value(2));
+        mvc.perform(get("/api/blogs/" + blog + "/pinned").session(a)).andExpect(jsonPath("$.length()").value(3));
+    }
+
+    @Test
+    void diaryEditMovesAndDeletesManyPosts() throws Exception {
+        MockHttpSession a = member("에이", "a@example.com");
+        MockHttpSession b = member("비이", "b@example.com");
+        long blog = blogIdOf(a);
+        long cat = defaultCategory(blog);
+        long other = read(mvc.perform(postJson("/api/blogs/" + blog + "/categories", Map.of("name", "여행")).session(a))
+                .andReturn()).get("id").asLong();
+        long p1 = write(a, blog, cat, "하나", List.of());
+        long p2 = write(a, blog, cat, "둘", List.of());
+        long p3 = write(a, blog, cat, "셋", List.of());
+        long bBlog = blogIdOf(b);
+        long bPost = write(b, bBlog, defaultCategory(bBlog), "비이 글", List.of());
+        String move = "/api/blogs/" + blog + "/posts/move";
+        String del = "/api/blogs/" + blog + "/posts/delete";
+
+        mvc.perform(postJson(move, Map.of("postIds", List.of(), "categoryId", other)).session(a))
+                .andExpect(jsonPath("$.error.fields.postIds").exists());
+        mvc.perform(postJson(move, Map.of("postIds", List.of(p1, bPost), "categoryId", other)).session(a))
+                .andExpect(status().isNotFound());
+        mvc.perform(postJson(move, Map.of("postIds", List.of(p1), "categoryId", other)).session(b))
+                .andExpect(status().isNotFound());
+        mvc.perform(postJson(move, Map.of("postIds", List.of(p1), "categoryId", defaultCategory(bBlog))).session(a))
+                .andExpect(status().isBadRequest());
+
+        mvc.perform(postJson(move, Map.of("postIds", List.of(p1, p2), "categoryId", other)).session(a))
+                .andExpect(jsonPath("$.moved").value(2));
+        mvc.perform(get("/api/blogs/" + blog + "/posts").param("categoryId", String.valueOf(other)))
+                .andExpect(jsonPath("$.totalItems").value(2));
+
+        mvc.perform(postJson(del, Map.of("postIds", List.of(p2, p3))).session(a)).andExpect(jsonPath("$.deleted").value(2));
+        mvc.perform(get("/api/blogs/" + blog + "/posts")).andExpect(jsonPath("$.totalItems").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(p1));
+        mvc.perform(get("/api/posts/" + bPost)).andExpect(status().isOk());
+    }
 }

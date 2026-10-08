@@ -33,6 +33,7 @@ public enum ErrorCode {
     BLOG_NOT_FOUND(HttpStatus.NOT_FOUND, Messages.BLOG_NOT_FOUND),
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, Messages.POST_NOT_FOUND),
     DRAFT_NOT_FOUND(HttpStatus.NOT_FOUND, Messages.DRAFT_NOT_FOUND),
+    PIN_LIMIT(HttpStatus.CONFLICT, Messages.pinLimit(3)),
     DRAFT_LIMIT(HttpStatus.CONFLICT, Messages.draftLimit(20)),
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, Messages.CATEGORY_NOT_FOUND),
     CATEGORY_NAME_TAKEN(HttpStatus.CONFLICT, Messages.CATEGORY_NAME_TAKEN),

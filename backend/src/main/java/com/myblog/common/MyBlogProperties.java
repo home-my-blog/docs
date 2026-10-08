@@ -47,7 +47,7 @@ public record MyBlogProperties(
                        int categoryDescriptionMax, int blogTags) {}
 
     /** CF-05, CF-10 */
-    public record Post(int titleMax, int bodyMax, int excerptLength, int pageSize, int otherPosts) {}
+    public record Post(int titleMax, int bodyMax, int excerptLength, int pageSize, int otherPosts, int pinLimit) {}
 
     /** 임시저장: 회원별 최대 개수, 글쓰기 중 자동 저장 간격 */
     public record Draft(int maxPerMember, Duration autosaveInterval) {}

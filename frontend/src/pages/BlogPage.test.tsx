@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockFetch, renderWithProviders } from '../test/utils';
@@ -66,5 +66,44 @@ describe('블로그 화면 (데모 다이어리)', () => {
     expect(listCall).toContain('categoryId=4');
     expect(listCall).toContain('sort=popular');
     expect(decodeURIComponent(listCall ?? '')).toContain('tag=여행');
+  });
+
+  it('첫 화면 위쪽에 대표글을 보여 준다', async () => {
+    mockFetch([
+      { path: '/api/auth/me', status: 204 },
+      { path: '/api/blogs/1', body: { ...blog, isOwner: false } },
+      { path: '/api/blogs/1/categories', body: categories.slice(0, 1) },
+      { path: '/api/blogs/1/tags', body: [] },
+      { path: '/api/blogs/1/pinned', body: [{ id: 9, title: '고정한 글', excerpt: '요약', createdAt: '2026-10-01T10:00:00+09:00', blog: { id: 1, name: '생각 서랍' }, category: { id: 1, name: '일상', colorIndex: 2 } }] },
+      { path: '/api/blogs/1/posts', body: page([]) },
+    ]);
+    renderAt('/blogs/1');
+    expect(await screen.findByText('고정한 글')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '대표글' })).toBeInTheDocument();
+  });
+
+  it('다이어리 편집: 글을 골라 다른 다이어리로 옮긴다', async () => {
+    const posts = [
+      { id: 11, category: { id: 1, name: '일상' }, createdAt: '2026-10-01T10:00:00+09:00', title: '첫 글', excerpt: '', visibility: 'PUBLIC' },
+      { id: 12, category: { id: 1, name: '일상' }, createdAt: '2026-10-02T10:00:00+09:00', title: '둘째 글', excerpt: '', visibility: 'PUBLIC' },
+    ];
+    const fetchMock = mockFetch([
+      { path: '/api/auth/me', body: { member: { id: 3, nickname: '끄적이', email: 'd@b.com' }, blog: { id: 1, name: '생각 서랍' }, newCommentCount: 0 } },
+      { path: '/api/blogs/1', body: blog },
+      { path: '/api/blogs/1/categories', body: categories },
+      { path: '/api/blogs/1/tags', body: [] },
+      { path: '/api/blogs/1/posts', body: page(posts) },
+      { method: 'POST', path: '/api/blogs/1/posts/move', body: { moved: 2 } },
+      { path: '/api/csrf', body: {} },
+    ]);
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    document.cookie = 'XSRF-TOKEN=t; path=/';
+    renderAt('/blogs/1?category=1&edit=1');
+    fireEvent.click(await screen.findByLabelText('전체 선택'));
+    expect(screen.getByText('2개 선택')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '이동' }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([u, i]) => u === '/api/blogs/1/posts/move' && i?.method === 'POST')).toBe(true));
+    const call = fetchMock.mock.calls.find(([u]) => u === '/api/blogs/1/posts/move');
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({ postIds: [11, 12], categoryId: 4 });
   });
 });

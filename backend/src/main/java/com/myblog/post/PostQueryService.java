@@ -157,6 +157,14 @@ public class PostQueryService {
         return page(where, params, page, order);
     }
 
+    /** 대표글: 고정한 순서대로, 이 사람이 볼 수 있는 것만 (데모 개인 기능 '대표글 고정') */
+    public List<Map<String, Object>> pinned(long blogId, Long viewer) {
+        return jdbc.sql(SELECT + " WHERE p.blog_id = :blog AND p.pinned_at IS NOT NULL AND " + VISIBLE_TO
+                        + " ORDER BY p.pinned_at, p.id")
+                .param("blog", blogId).param("viewer", viewerParam(viewer))
+                .query(PostRow.class).list().stream().map(this::summary).toList();
+    }
+
     /** 블로그 왼쪽 태그 모음: 이 사람이 볼 수 있는 글에 많이 붙은 순 (데모 '블로그 태그 모음'). */
     public List<Map<String, Object>> blogTags(long blogId, Long viewer, int limit) {
         return jdbc.sql("""

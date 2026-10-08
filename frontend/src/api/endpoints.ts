@@ -94,6 +94,13 @@ export const updateCategory = (
   body: { name?: string; description?: string; colorIndex?: number; visibility?: Visibility },
 ) => api<void>(`/api/categories/${id}`, { method: 'PATCH', body });
 export const getBlogTags = (blogId: string | number) => api<BlogTag[]>(`/api/blogs/${blogId}/tags`);
+export const getPinnedPosts = (blogId: string | number) => api<PostSummary[]>(`/api/blogs/${blogId}/pinned`);
+export const togglePin = (postId: number) => api<{ pinned: boolean }>(`/api/posts/${postId}/pin`, { method: 'PUT' });
+/** 다이어리 편집 */
+export const movePosts = (blogId: number, postIds: number[], categoryId: number) =>
+  api<{ moved: number }>(`/api/blogs/${blogId}/posts/move`, { method: 'POST', body: { postIds, categoryId } });
+export const deletePosts = (blogId: number, postIds: number[]) =>
+  api<{ deleted: number }>(`/api/blogs/${blogId}/posts/delete`, { method: 'POST', body: { postIds } });
 export const moveCategory = (id: number, direction: 'up' | 'down') =>
   api<void>(`/api/categories/${id}/move`, { method: 'POST', body: { direction } });
 export const deleteCategory = (id: number) => api<void>(`/api/categories/${id}`, { method: 'DELETE' });
