@@ -1,0 +1,130 @@
+import { api } from './client';
+import type {
+  AppConfig,
+  BlogAbout,
+  BlogDetail,
+  BlogPostListItem,
+  Category,
+  Comment,
+  DashboardResponse,
+  HomeResponse,
+  LikeResponse,
+  ManageCommentItem,
+  ManagePostItem,
+  Member,
+  MeResponse,
+  MyProfile,
+  Page,
+  PostDetail,
+  PostEditSource,
+  PostSaveRequest,
+  PostSummary,
+  ReportReason,
+  SearchResponse,
+  SearchType,
+  StatsResponse,
+  Topic,
+  TopicPageResponse,
+  TrendingResponse,
+  UploadedImage,
+  VerificationConfirmResponse,
+  VerificationResponse,
+  Visibility,
+} from './types';
+
+export type VerificationPurpose = 'signup' | 'reset';
+
+/* 설정 */
+export const getConfig = () => api<Partial<AppConfig>>('/api/config');
+
+/* 회원·인증 */
+export const getMe = async (): Promise<MeResponse | null> => {
+  const res = await api<MeResponse | undefined>('/api/auth/me', { skipAuthEvent: true });
+  return res ?? null;
+};
+export const requestVerification = (body: { purpose: VerificationPurpose; email: string; nickname?: string }) =>
+  api<VerificationResponse>('/api/auth/verifications', { method: 'POST', body, skipAuthEvent: true });
+export const confirmVerification = (body: { purpose: VerificationPurpose; email: string; code: string }) =>
+  api<VerificationConfirmResponse>('/api/auth/verifications/confirm', { method: 'POST', body, skipAuthEvent: true });
+export const signup = (body: { nickname: string; email: string; password: string; passwordConfirm: string }) =>
+  api<void>('/api/auth/signup', { method: 'POST', body, skipAuthEvent: true });
+export const login = (body: { email: string; password: string }) =>
+  api<{ member: Member }>('/api/auth/login', { method: 'POST', body, skipAuthEvent: true });
+export const logout = () => api<void>('/api/auth/logout', { method: 'POST', skipAuthEvent: true });
+export const resetPassword = (body: { email: string; newPassword: string; newPasswordConfirm: string }) =>
+  api<void>('/api/auth/password-reset', { method: 'POST', body, skipAuthEvent: true });
+
+/* 마이페이지 */
+export const getMyProfile = () => api<MyProfile>('/api/me');
+export const updateMyProfile = (body: { nickname?: string; bio?: string }) =>
+  api<void>('/api/me', { method: 'PATCH', body });
+export const changePassword = (body: { currentPassword: string; newPassword: string; newPasswordConfirm: string }) =>
+  api<void>('/api/me/password', { method: 'PUT', body });
+export const withdraw = (body: { password: string; acknowledged: true }) =>
+  api<void>('/api/me', { method: 'DELETE', body });
+
+/* 주제·홈 */
+export const getTopics = () => api<Topic[]>('/api/topics');
+export const getHome = () => api<HomeResponse>('/api/home');
+export const getTopicPage = (code: string) => api<TopicPageResponse>(`/api/topics/${encodeURIComponent(code)}`);
+
+/* 블로그·분류 */
+export const getBlog = (blogId: string | number) => api<BlogDetail>(`/api/blogs/${blogId}`);
+export const getBlogAbout = (blogId: string | number) => api<BlogAbout>(`/api/blogs/${blogId}/about`);
+export const updateBlog = (
+  blogId: number,
+  body: { name?: string; description?: string; about?: string; topicCode?: string },
+) => api<void>(`/api/blogs/${blogId}`, { method: 'PATCH', body });
+export const getCategories = (blogId: string | number) => api<Category[]>(`/api/blogs/${blogId}/categories`);
+export const createCategory = (blogId: number, name: string) =>
+  api<Category>(`/api/blogs/${blogId}/categories`, { method: 'POST', body: { name } });
+export const renameCategory = (id: number, name: string) =>
+  api<void>(`/api/categories/${id}`, { method: 'PATCH', body: { name } });
+export const moveCategory = (id: number, direction: 'up' | 'down') =>
+  api<void>(`/api/categories/${id}/move`, { method: 'POST', body: { direction } });
+export const deleteCategory = (id: number) => api<void>(`/api/categories/${id}`, { method: 'DELETE' });
+
+/* 글 */
+export const getBlogPosts = (blogId: string | number, params: { categoryId?: string | null; page?: number }) =>
+  api<Page<BlogPostListItem>>(`/api/blogs/${blogId}/posts`, {
+    query: { categoryId: params.categoryId, page: params.page },
+  });
+export const getPost = (id: string | number) => api<PostDetail>(`/api/posts/${id}`);
+export const getPostForEdit = (id: string | number) => api<PostEditSource>(`/api/posts/${id}/edit`);
+export const createPost = (blogId: number, body: PostSaveRequest) =>
+  api<{ id: number }>(`/api/blogs/${blogId}/posts`, { method: 'POST', body });
+export const updatePost = (id: number, body: PostSaveRequest) =>
+  api<void>(`/api/posts/${id}`, { method: 'PUT', body });
+export const deletePost = (id: number) => api<void>(`/api/posts/${id}`, { method: 'DELETE' });
+export const getLastCategory = () => api<{ categoryId: number | null }>('/api/me/last-category');
+export const getTagPosts = (name: string, page: number) =>
+  api<Page<PostSummary>>(`/api/tags/${encodeURIComponent(name)}/posts`, { query: { page } });
+
+/* 소통 */
+export const getComments = (postId: number) => api<Comment[]>(`/api/posts/${postId}/comments`);
+export const createComment = (postId: number, body: string) =>
+  api<Comment | undefined>(`/api/posts/${postId}/comments`, { method: 'POST', body: { body } });
+export const deleteComment = (id: number) => api<void>(`/api/comments/${id}`, { method: 'DELETE' });
+export const toggleLike = (postId: number) => api<LikeResponse>(`/api/posts/${postId}/like`, { method: 'PUT' });
+export const reportPost = (postId: number, body: { reason: ReportReason; detail?: string }) =>
+  api<void>(`/api/posts/${postId}/reports`, { method: 'POST', body });
+export const uploadImage = (file: File) => {
+  const form = new FormData();
+  form.append('file', file);
+  return api<UploadedImage>('/api/images', { method: 'POST', body: form });
+};
+
+/* 검색 */
+export const search = (params: { q: string; type: SearchType; page?: number }) =>
+  api<SearchResponse>('/api/search', { query: { q: params.q, type: params.type, page: params.page } });
+export const getTrending = () => api<TrendingResponse>('/api/search/trending');
+
+/* 블로그 관리 */
+export const getDashboard = () => api<DashboardResponse>('/api/manage/dashboard');
+export const getManagePosts = (params: { visibility?: Visibility | null; categoryId?: string | null; page?: number }) =>
+  api<Page<ManagePostItem>>('/api/manage/posts', {
+    query: { visibility: params.visibility, categoryId: params.categoryId, page: params.page },
+  });
+export const getManageComments = (page: number) =>
+  api<Page<ManageCommentItem>>('/api/manage/comments', { query: { page } });
+export const getStats = (days: 7 | 30) => api<StatsResponse>('/api/manage/stats', { query: { days } });

@@ -202,6 +202,6 @@ public class PostQueryService {
                 GROUP BY p.id, p.title ORDER BY views DESC, p.id DESC LIMIT :limit""")
                 .param("blog", blogId).param("since", since).param("limit", limit)
                 .query((rs, i) -> Map.<String, Object>of("id", rs.getLong("id"), "title", rs.getString("title"),
-                        "views", rs.getLong("views"))).list();
+                        "viewCount", rs.getLong("views"))).list();
     }
 }

@@ -29,6 +29,7 @@ public class BlogCards {
         m.put("id", rs.getLong("id"));
         m.put("name", rs.getString("name"));
         m.put("description", rs.getString("description"));
+        m.put("ownerNickname", nickname);
         m.put("owner", Map.of("nickname", nickname, "initial", nickname.substring(0, nickname.offsetByCodePoints(0, 1))));
         m.put("topic", Map.of("code", rs.getString("code"), "name", rs.getString("topic_name")));
         m.put("postCount", rs.getLong("post_count"));

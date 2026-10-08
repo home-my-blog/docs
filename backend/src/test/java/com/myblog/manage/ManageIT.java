@@ -29,7 +29,8 @@ class ManageIT extends IntegrationTest {
                 .andExpect(jsonPath("$.views.today").value(3))
                 .andExpect(jsonPath("$.visitors.today").value(1))
                 .andExpect(jsonPath("$.daily.length()").value(30))
-                .andExpect(jsonPath("$.popularPosts.length()").value(3));
+                .andExpect(jsonPath("$.popularPosts.length()").value(3))
+                .andExpect(jsonPath("$.popularPosts[0].viewCount").exists());
         mvc.perform(get("/api/manage/posts").session(owner).param("visibility", "PRIVATE"))
                 .andExpect(jsonPath("$.totalItems").value(1));
         mvc.perform(get("/api/manage/stats").session(owner).param("days", "7"))
