@@ -8,22 +8,22 @@
 ## 준비물
 
 - JDK 21, Node.js 22, Docker(OrbStack 또는 Docker Desktop)
-- 저장소 루트에서 `cp .env.example .env` 후 `DB_PASSWORD`, `MINIO_PASSWORD`를 채운다.
+- `app/` 폴더에서 `cp .env.example .env` 후 `DB_PASSWORD`, `MINIO_PASSWORD`를 채운다.
   메일은 기본값 `MYBLOG_MAIL_MODE=log`(서버 로그에 인증번호 출력)로 둔다.
 
 ## 실행
 
 ```bash
 docker compose up -d                      # PostgreSQL 16, Redis 7, MinIO
-cd backend && ./gradlew bootRun           # http://localhost:8080 (Flyway가 표와 주제 시드를 만든다)
-cd frontend && npm install && npm run dev # http://localhost:5173 (/api는 8080으로 프록시)
+cd app/backend && ./gradlew bootRun           # http://localhost:8080 (Flyway가 표와 주제 시드를 만든다)
+cd app/frontend && npm install && npm run dev # http://localhost:5173 (/api는 8080으로 프록시)
 ```
 
 ## 자동 검사
 
 ```bash
-cd backend && ./gradlew test              # Testcontainers로 DB·Redis·MinIO를 띄워 통합 테스트
-cd frontend && npm run lint && npm run typecheck && npm test
+cd app/backend && ./gradlew test              # Testcontainers로 DB·Redis·MinIO를 띄워 통합 테스트
+cd app/frontend && npm run lint && npm run typecheck && npm test
 npx playwright test                       # 위 실행 상태에서 US1~US3 종단 시나리오
 ```
 

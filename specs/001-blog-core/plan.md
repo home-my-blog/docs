@@ -78,6 +78,8 @@ specs/001-blog-core/
 
 ### Source Code (repository root)
 
+> 아래 소스코드 파일과 폴더는 모두 저장소의 `app/` 폴더 안에 있다(문서는 `docs/`, 스펙은 `specs/`).
+
 ```text
 docker-compose.yml               # PostgreSQL 16, Redis 7, MinIO (개발용)
 .env.example                     # DB_PASSWORD, MINIO_PASSWORD, SMTP_* (실제 .env는 커밋하지 않음)

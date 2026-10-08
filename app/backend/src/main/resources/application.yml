@@ -2,7 +2,7 @@ spring:
   application:
     name: myblog
   config:
-    # 저장소 루트의 .env(비밀 값)를 읽는다. 없으면 환경 변수만 쓴다.
+    # app 폴더의 .env(비밀 값)를 읽는다. 없으면 환경 변수만 쓴다.
     import: optional:file:../.env[.properties],optional:file:./.env[.properties]
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/myblog}

@@ -1,4 +1,4 @@
-# 개발용 인프라 (docs/가이드/03-로컬환경-도커컴포즈-사용법.md). 서버와 화면은 상자에 넣지 않는다.
+# 개발용 인프라 (../docs/가이드/03-로컬환경-도커컴포즈-사용법.md). 서버와 화면은 상자에 넣지 않는다.
 services:
   db:
     image: postgres:16
@@ -22,7 +22,7 @@ services:
       retries: 5
 
   # 이미지 저장소. 기본 설정은 서버 디스크(MYBLOG_IMAGE_STORAGE=disk)라 없어도 된다.
-  # MinIO를 쓰려면 MYBLOG_IMAGE_STORAGE=s3 로 바꾼다. 이미지 현황은 docs/가이드/04-MinIO-현황과-선택.md
+  # MinIO를 쓰려면 MYBLOG_IMAGE_STORAGE=s3 로 바꾼다. 이미지 현황은 ../docs/가이드/04-MinIO-현황과-선택.md
   minio:
     image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     profiles: ["minio"]
