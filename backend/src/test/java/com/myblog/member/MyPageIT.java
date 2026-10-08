@@ -44,7 +44,7 @@ class MyPageIT extends IntegrationTest {
         mvc.perform(jsonRequest(put("/api/me/password"), Map.of("currentPassword", "wrong1!a", "newPassword", newPw,
                 "newPasswordConfirm", newPw)).session(laptop))
                 .andExpect(jsonPath("$.error.code").value("CURRENT_PASSWORD_MISMATCH"));
-        assertThat(jdbc.sql("SELECT failed_login_count FROM member").query(Integer.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("SELECT failed_login_count FROM members").query(Integer.class).single()).isEqualTo(1);
         mvc.perform(jsonRequest(put("/api/me/password"), Map.of("currentPassword", PASSWORD, "newPassword", newPw,
                 "newPasswordConfirm", newPw)).session(laptop)).andExpect(status().isOk());
         mvc.perform(get("/api/me").session(laptop)).andExpect(status().isOk());
@@ -66,9 +66,9 @@ class MyPageIT extends IntegrationTest {
         mvc.perform(jsonRequest(delete("/api/me"), Map.of("password", PASSWORD, "acknowledged", true)).session(a))
                 .andExpect(status().isNoContent());
 
-        assertThat(jdbc.sql("SELECT count(*) FROM blog").query(Long.class).single()).isEqualTo(1);
-        assertThat(jdbc.sql("SELECT count(*) FROM post").query(Long.class).single()).isEqualTo(1);
-        assertThat(jdbc.sql("SELECT count(*) FROM post_like").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("SELECT count(*) FROM blogs").query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("SELECT count(*) FROM posts").query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("SELECT count(*) FROM post_likes").query(Long.class).single()).isZero();
         mvc.perform(get("/api/posts/" + postB + "/comments"))
                 .andExpect(jsonPath("$[0].author").doesNotExist())
                 .andExpect(jsonPath("$[0].body").value("남의 글 댓글"));

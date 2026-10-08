@@ -62,8 +62,8 @@ public abstract class IntegrationTest {
     @BeforeEach
     void cleanUp() {
         jdbc.sql("""
-                TRUNCATE search_log, daily_stat, comment, post_report, post_like, post_tag, tag, post, post_image,
-                         category, blog, member RESTART IDENTITY CASCADE""").update();
+                TRUNCATE search_logs, daily_stats, comments, post_flags, post_likes, post_tags, tags, posts, post_images,
+                         categories, blogs, members RESTART IDENTITY CASCADE""").update();
         var keys = redis.keys("*");
         if (keys != null && !keys.isEmpty()) {
             redis.delete(keys);

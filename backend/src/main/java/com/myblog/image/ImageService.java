@@ -80,14 +80,14 @@ public class ImageService {
         storage.put(key, bytes, type[0]);
         var keys = new GeneratedKeyHolder();
         jdbc.sql("""
-                INSERT INTO post_image (uploader_id, storage_key, content_type, size_bytes, created_at)
+                INSERT INTO post_images (uploader_id, storage_key, content_type, size_bytes, created_at)
                 VALUES (?, ?, ?, ?, ?)""").params(memberId, key, type[0], bytes.length, clock.nowOffset())
                 .update(keys, "id");
         return new Uploaded(keys.getKey().longValue(), url(key));
     }
 
     public Image read(String key) {
-        String type = jdbc.sql("SELECT content_type FROM post_image WHERE storage_key = ?").param(key)
+        String type = jdbc.sql("SELECT content_type FROM post_images WHERE storage_key = ?").param(key)
                 .query(String.class).optional().orElseThrow(() -> new ApiException(ErrorCode.IMAGE_NOT_FOUND));
         byte[] bytes = storage.get(key).orElseThrow(() -> new ApiException(ErrorCode.IMAGE_NOT_FOUND));
         return new Image(bytes, type);
@@ -102,20 +102,20 @@ public class ImageService {
         if (ids.size() > rules.maxPerPost()) {
             throw new ApiException(ErrorCode.TOO_MANY_IMAGES);
         }
-        jdbc.sql("UPDATE post_image SET post_id = NULL WHERE post_id = ?").param(postId).update();
+        jdbc.sql("UPDATE post_images SET post_id = NULL WHERE post_id = ?").param(postId).update();
         if (!ids.isEmpty()) {
-            jdbc.sql("UPDATE post_image SET post_id = :post WHERE id IN (:ids) AND uploader_id = :member")
+            jdbc.sql("UPDATE post_images SET post_id = :post WHERE id IN (:ids) AND uploader_id = :member")
                     .param("post", postId).param("ids", ids).param("member", memberId).update();
         }
     }
 
     public boolean ownedBy(long imageId, long memberId) {
-        return jdbc.sql("SELECT count(*) FROM post_image WHERE id = ? AND uploader_id = ?")
+        return jdbc.sql("SELECT count(*) FROM post_images WHERE id = ? AND uploader_id = ?")
                 .params(imageId, memberId).query(Long.class).single() > 0;
     }
 
     public List<String> keysOfPost(long postId) {
-        return jdbc.sql("SELECT storage_key FROM post_image WHERE post_id = ?").param(postId).query(String.class).list();
+        return jdbc.sql("SELECT storage_key FROM post_images WHERE post_id = ?").param(postId).query(String.class).list();
     }
 
     /** DB 변경이 확정된 뒤에만 파일을 지운다. */
@@ -147,12 +147,12 @@ public class ImageService {
     public void cleanOrphans() {
         var cutoff = clock.nowOffset().minus(rules.orphanTtl());
         List<Map<String, Object>> rows = jdbc.sql("""
-                SELECT id, storage_key FROM post_image
+                SELECT id, storage_key FROM post_images
                 WHERE post_id IS NULL AND created_at < ?
-                  AND id NOT IN (SELECT cover_image_id FROM post WHERE cover_image_id IS NOT NULL)""")
+                  AND id NOT IN (SELECT cover_image_id FROM posts WHERE cover_image_id IS NOT NULL)""")
                 .param(cutoff).query().listOfRows();
         for (var row : rows) {
-            jdbc.sql("DELETE FROM post_image WHERE id = ?").param(row.get("id")).update();
+            jdbc.sql("DELETE FROM post_images WHERE id = ?").param(row.get("id")).update();
             deleteFilesAfterCommit(List.of((String) row.get("storage_key")));
         }
     }

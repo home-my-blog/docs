@@ -40,7 +40,7 @@ public class ManageService {
         return jdbc.sql("SELECT coalesce(sum(CASE WHEN stat_date = :today THEN " + column + " END), 0) AS today,"
                         + " coalesce(sum(CASE WHEN stat_date = :yesterday THEN " + column + " END), 0) AS yesterday,"
                         + " coalesce(sum(" + column + "), 0) AS total"
-                        + " FROM daily_stat WHERE blog_id = :blog AND post_id IS NULL")
+                        + " FROM daily_stats WHERE blog_id = :blog AND post_id IS NULL")
                 .param("today", today).param("yesterday", today.minusDays(1)).param("blog", blogId)
                 .query((rs, i) -> Map.of("today", rs.getLong("today"), "yesterday", rs.getLong("yesterday"),
                         "total", rs.getLong("total"))).single();
@@ -51,13 +51,13 @@ public class ManageService {
         LocalDate today = clock.today();
         LocalDate from = today.minusDays(days - 1L);
         Map<LocalDate, long[]> byDate = new HashMap<>();
-        jdbc.sql("SELECT stat_date, views, visitors FROM daily_stat WHERE blog_id = ? AND post_id IS NULL AND stat_date >= ?")
+        jdbc.sql("SELECT stat_date, views, visitors FROM daily_stats WHERE blog_id = ? AND post_id IS NULL AND stat_date >= ?")
                 .params(blogId, from)
                 .query((rs, i) -> byDate.put(rs.getObject("stat_date", LocalDate.class),
                         new long[] {rs.getLong("views"), rs.getLong("visitors"), 0})).list();
         jdbc.sql("""
                 SELECT (cm.created_at AT TIME ZONE 'Asia/Seoul')::date AS d, count(*) AS c
-                FROM comment cm JOIN post p ON p.id = cm.post_id
+                FROM comments cm JOIN posts p ON p.id = cm.post_id
                 WHERE p.blog_id = ? AND cm.created_at >= ? GROUP BY d""")
                 .params(blogId, from.atStartOfDay(KoreanClock.SEOUL).toOffsetDateTime())
                 .query((rs, i) -> byDate.computeIfAbsent(rs.getObject("d", LocalDate.class), k -> new long[3])[2]
@@ -79,7 +79,7 @@ public class ManageService {
         m.put("daily", daily(blogId, d.chartDays()));
         m.put("popularPosts", posts.popularInBlog(blogId, clock.today().minusDays(d.popularDays() - 1L), d.popularSize()));
         m.put("recentPosts", jdbc.sql("""
-                SELECT id, title, created_at, visibility FROM post WHERE blog_id = ?
+                SELECT id, title, created_at, visibility FROM posts WHERE blog_id = ?
                 ORDER BY created_at DESC, id DESC LIMIT ?""").params(blogId, d.recentSize())
                 .query((rs, i) -> Map.of("id", rs.getLong("id"), "title", rs.getString("title"),
                         "createdAt", rs.getObject("created_at", OffsetDateTime.class),
@@ -100,7 +100,7 @@ public class ManageService {
             where += " AND p.category_id = :cat";
             params.put("cat", categoryId);
         }
-        long total = jdbc.sql("SELECT count(*) FROM post p WHERE " + where).params(params).query(Long.class).single();
+        long total = jdbc.sql("SELECT count(*) FROM posts p WHERE " + where).params(params).query(Long.class).single();
         String finalWhere = where;
         return PageRequests.page(page, props.post().pageSize(), total, (limit, offset) -> {
             Map<String, Object> all = new LinkedHashMap<>(params);
@@ -108,8 +108,8 @@ public class ManageService {
             all.put("offset", offset);
             return jdbc.sql("""
                     SELECT p.id, p.title, c.id AS category_id, c.name AS category_name, p.created_at, p.visibility,
-                           p.view_count, (SELECT count(*) FROM comment cm WHERE cm.post_id = p.id) AS comment_count
-                    FROM post p JOIN category c ON c.id = p.category_id WHERE\s""" + finalWhere + """
+                           p.view_count, (SELECT count(*) FROM comments cm WHERE cm.post_id = p.id) AS comment_count
+                    FROM posts p JOIN categories c ON c.id = p.category_id WHERE\s""" + finalWhere + """
 
                     ORDER BY p.created_at DESC, p.id DESC LIMIT :limit OFFSET :offset""")
                     .params(all).query((rs, i) -> {
@@ -129,14 +129,14 @@ public class ManageService {
     /** 내 블로그 글의 모든 댓글, 최신순. 열면 새 댓글이 모두 읽음이 된다 (BM-05-1, 2, 6). */
     @Transactional
     public PageResponse<Map<String, Object>> comments(long blogId, long ownerId, Integer page) {
-        OffsetDateTime seenAt = jdbc.sql("SELECT comments_seen_at FROM blog WHERE id = ?").param(blogId)
+        OffsetDateTime seenAt = jdbc.sql("SELECT comments_seen_at FROM blogs WHERE id = ?").param(blogId)
                 .query(OffsetDateTime.class).single();
-        long total = jdbc.sql("SELECT count(*) FROM comment cm JOIN post p ON p.id = cm.post_id WHERE p.blog_id = ?")
+        long total = jdbc.sql("SELECT count(*) FROM comments cm JOIN posts p ON p.id = cm.post_id WHERE p.blog_id = ?")
                 .param(blogId).query(Long.class).single();
         int preview = props.comment().previewLength();
         var result = PageRequests.page(page, props.post().pageSize(), total, (limit, offset) -> jdbc.sql("""
                 SELECT cm.id, cm.author_id, m.nickname, cm.body, cm.created_at, p.id AS post_id, p.title
-                FROM comment cm JOIN post p ON p.id = cm.post_id LEFT JOIN member m ON m.id = cm.author_id
+                FROM comments cm JOIN posts p ON p.id = cm.post_id LEFT JOIN members m ON m.id = cm.author_id
                 WHERE p.blog_id = ? ORDER BY cm.created_at DESC, cm.id DESC LIMIT ? OFFSET ?""")
                 .params(blogId, limit, offset).query((rs, i) -> {
                     Map<String, Object> m = new LinkedHashMap<>();
@@ -151,7 +151,7 @@ public class ManageService {
                     m.put("isNew", at.isAfter(seenAt) && (deleted || authorId != ownerId));
                     return m;
                 }).list());
-        jdbc.sql("UPDATE blog SET comments_seen_at = ? WHERE id = ?").params(clock.nowOffset(), blogId).update();
+        jdbc.sql("UPDATE blogs SET comments_seen_at = ? WHERE id = ?").params(clock.nowOffset(), blogId).update();
         return result;
     }
 }

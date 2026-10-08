@@ -65,7 +65,7 @@ class PostFlowIT extends IntegrationTest {
         long pub1 = writePost(a, "공개 단풍 하나", "단풍 명소", "PUBLIC");
         long priv = writePost(a, "비밀 단풍", "단풍 명소 비밀", "PRIVATE");
         long pub2 = writePost(a, "공개 단풍 둘", "단풍 명소", "PUBLIC");
-        jdbc.sql("UPDATE post SET featured = true").update();
+        jdbc.sql("UPDATE posts SET featured = true").update();
 
         for (MockHttpSession viewer : new MockHttpSession[] {b, new MockHttpSession()}) {
             mvc.perform(get("/api/posts/" + priv).session(viewer))
@@ -210,8 +210,8 @@ class PostFlowIT extends IntegrationTest {
 
         // 글을 지우면 댓글·좋아요·태그 연결·신고도 함께 (CF-05-15)
         mvc.perform(delete("/api/posts/" + post).with(csrf()).session(a)).andExpect(status().isOk());
-        assertThat(jdbc.sql("SELECT count(*) FROM comment").query(Long.class).single()).isZero();
-        assertThat(jdbc.sql("SELECT count(*) FROM post_tag").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("SELECT count(*) FROM comments").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("SELECT count(*) FROM post_tags").query(Long.class).single()).isZero();
     }
 
     @Test

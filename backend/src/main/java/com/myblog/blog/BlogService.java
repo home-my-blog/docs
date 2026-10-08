@@ -44,7 +44,7 @@ public class BlogService {
         long topicId = topics.byCode(props.blog().defaultTopic()).id();
         var keys = new GeneratedKeyHolder();
         jdbc.sql("""
-                INSERT INTO blog (owner_id, topic_id, name, comments_seen_at, created_at, updated_at)
+                INSERT INTO blogs (owner_id, topic_id, name, comments_seen_at, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?)""")
                 .params(memberId, topicId, nickname + "의 블로그", now, now, now)
                 .update(keys, "id");
@@ -57,7 +57,7 @@ public class BlogService {
         return jdbc.sql("""
                 SELECT b.id, b.owner_id, b.name, b.description, b.about, t.code AS topic_code, t.name AS topic_name,
                        m.nickname AS owner_nickname, m.bio AS owner_bio
-                FROM blog b JOIN topic t ON t.id = b.topic_id JOIN member m ON m.id = b.owner_id
+                FROM blogs b JOIN topics t ON t.id = b.topic_id JOIN members m ON m.id = b.owner_id
                 WHERE b.id = ?""").param(blogId).query(BlogRow.class).optional();
     }
 
@@ -66,7 +66,7 @@ public class BlogService {
     }
 
     public Optional<Long> blogIdOf(long memberId) {
-        return jdbc.sql("SELECT id FROM blog WHERE owner_id = ?").param(memberId).query(Long.class).optional();
+        return jdbc.sql("SELECT id FROM blogs WHERE owner_id = ?").param(memberId).query(Long.class).optional();
     }
 
     public long requireOwnBlogId(long memberId) {
@@ -85,7 +85,7 @@ public class BlogService {
     public Map<String, Object> summary(BlogRow b, Long viewerId) {
         boolean owner = viewerId != null && viewerId == b.ownerId();
         var stats = jdbc.sql("""
-                SELECT count(*) AS cnt, max(created_at) AS last_at FROM post
+                SELECT count(*) AS cnt, max(created_at) AS last_at FROM posts
                 WHERE blog_id = ? AND (visibility = 'PUBLIC' OR ?)""")
                 .params(b.id(), owner)
                 .query((rs, i) -> new Object[] {rs.getLong("cnt"), rs.getObject("last_at", OffsetDateTime.class)})
@@ -121,7 +121,7 @@ public class BlogService {
             throw ApiException.field("about", "소개 글은 " + props.blog().aboutMax() + "자 이하로 입력해 주세요");
         }
         long topicId = topics.byCode(req.topicCode() == null ? blog.topicCode() : req.topicCode()).id();
-        jdbc.sql("UPDATE blog SET name = ?, description = ?, about = ?, topic_id = ?, updated_at = ? WHERE id = ?")
+        jdbc.sql("UPDATE blogs SET name = ?, description = ?, about = ?, topic_id = ?, updated_at = ? WHERE id = ?")
                 .params(name, description, about, topicId, clock.nowOffset(), blogId).update();
     }
 }

@@ -18,9 +18,9 @@ public class BlogCards {
 
     private static final String SELECT = """
             SELECT b.id, b.name, b.description, m.nickname, t.code, t.name AS topic_name,
-                   (SELECT count(*) FROM post p WHERE p.blog_id = b.id AND p.visibility = 'PUBLIC') AS post_count,
-                   (SELECT max(p.created_at) FROM post p WHERE p.blog_id = b.id AND p.visibility = 'PUBLIC') AS last_post_at
-            FROM blog b JOIN member m ON m.id = b.owner_id JOIN topic t ON t.id = b.topic_id
+                   (SELECT count(*) FROM posts p WHERE p.blog_id = b.id AND p.visibility = 'PUBLIC') AS post_count,
+                   (SELECT max(p.created_at) FROM posts p WHERE p.blog_id = b.id AND p.visibility = 'PUBLIC') AS last_post_at
+            FROM blogs b JOIN members m ON m.id = b.owner_id JOIN topics t ON t.id = b.topic_id
             """;
 
     private static Map<String, Object> card(java.sql.ResultSet rs) throws java.sql.SQLException {
@@ -60,7 +60,7 @@ public class BlogCards {
 
     public long count(Long topicId) {
         return topicId == null
-                ? jdbc.sql("SELECT count(*) FROM blog").query(Long.class).single()
-                : jdbc.sql("SELECT count(*) FROM blog WHERE topic_id = ?").param(topicId).query(Long.class).single();
+                ? jdbc.sql("SELECT count(*) FROM blogs").query(Long.class).single()
+                : jdbc.sql("SELECT count(*) FROM blogs WHERE topic_id = ?").param(topicId).query(Long.class).single();
     }
 }

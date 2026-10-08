@@ -32,7 +32,7 @@ public class CategoryService {
     void createDefault(long blogId) {
         String name = props.blog().defaultCategoryName();
         jdbc.sql("""
-                INSERT INTO category (blog_id, name, name_key, sort_order, is_default, color_index)
+                INSERT INTO categories (blog_id, name, name_key, sort_order, is_default, color_index)
                 VALUES (?, ?, ?, 1, true, 0)""").params(blogId, name, key(name)).update();
     }
 
@@ -44,14 +44,14 @@ public class CategoryService {
     public List<CategoryView> list(long blogId, boolean owner) {
         return jdbc.sql("""
                 SELECT c.id, c.name, c.is_default, c.color_index,
-                       (SELECT count(*) FROM post p WHERE p.category_id = c.id
+                       (SELECT count(*) FROM posts p WHERE p.category_id = c.id
                           AND (p.visibility = 'PUBLIC' OR ?)) AS post_count
-                FROM category c WHERE c.blog_id = ? ORDER BY c.sort_order, c.id""")
+                FROM categories c WHERE c.blog_id = ? ORDER BY c.sort_order, c.id""")
                 .params(owner, blogId).query(CategoryView.class).list();
     }
 
     public CategoryRow get(long categoryId) {
-        return jdbc.sql("SELECT id, blog_id, name, sort_order, is_default, color_index FROM category WHERE id = ?")
+        return jdbc.sql("SELECT id, blog_id, name, sort_order, is_default, color_index FROM categories WHERE id = ?")
                 .param(categoryId).query(CategoryRow.class).optional()
                 .orElseThrow(() -> new ApiException(ErrorCode.CATEGORY_NOT_FOUND));
     }
@@ -78,12 +78,12 @@ public class CategoryService {
     @Transactional
     public long add(long blogId, String rawName) {
         String name = validName(rawName);
-        var next = jdbc.sql("SELECT coalesce(max(sort_order), 0) + 1, count(*) FROM category WHERE blog_id = ?")
+        var next = jdbc.sql("SELECT coalesce(max(sort_order), 0) + 1, count(*) FROM categories WHERE blog_id = ?")
                 .param(blogId).query((rs, i) -> new int[] {rs.getInt(1), rs.getInt(2)}).single();
         var keys = new GeneratedKeyHolder();
         try {
             jdbc.sql("""
-                    INSERT INTO category (blog_id, name, name_key, sort_order, is_default, color_index)
+                    INSERT INTO categories (blog_id, name, name_key, sort_order, is_default, color_index)
                     VALUES (?, ?, ?, ?, false, ?)""")
                     .params(blogId, name, key(name), next[0], next[1] % props.blog().colorCount())
                     .update(keys, "id");
@@ -99,7 +99,7 @@ public class CategoryService {
         requireOwned(categoryId, ownerBlogId);
         String name = validName(rawName);
         try {
-            jdbc.sql("UPDATE category SET name = ?, name_key = ? WHERE id = ?")
+            jdbc.sql("UPDATE categories SET name = ?, name_key = ? WHERE id = ?")
                     .params(name, key(name), categoryId).update();
         } catch (DataIntegrityViolationException e) {
             throw ApiException.withDetails(ErrorCode.CATEGORY_NAME_TAKEN, Messages.CATEGORY_NAME_TAKEN,
@@ -116,13 +116,13 @@ public class CategoryService {
             throw ApiException.field("direction", "방향이 올바르지 않습니다");
         }
         var neighbor = jdbc.sql(up
-                        ? "SELECT id, sort_order FROM category WHERE blog_id = ? AND sort_order < ? ORDER BY sort_order DESC LIMIT 1"
-                        : "SELECT id, sort_order FROM category WHERE blog_id = ? AND sort_order > ? ORDER BY sort_order LIMIT 1")
+                        ? "SELECT id, sort_order FROM categories WHERE blog_id = ? AND sort_order < ? ORDER BY sort_order DESC LIMIT 1"
+                        : "SELECT id, sort_order FROM categories WHERE blog_id = ? AND sort_order > ? ORDER BY sort_order LIMIT 1")
                 .params(c.blogId(), c.sortOrder())
                 .query((rs, i) -> new long[] {rs.getLong(1), rs.getLong(2)}).optional();
         neighbor.ifPresent(n -> {
-            jdbc.sql("UPDATE category SET sort_order = ? WHERE id = ?").params(n[1], c.id()).update();
-            jdbc.sql("UPDATE category SET sort_order = ? WHERE id = ?").params(c.sortOrder(), n[0]).update();
+            jdbc.sql("UPDATE categories SET sort_order = ? WHERE id = ?").params(n[1], c.id()).update();
+            jdbc.sql("UPDATE categories SET sort_order = ? WHERE id = ?").params(c.sortOrder(), n[0]).update();
         });
     }
 
@@ -133,12 +133,12 @@ public class CategoryService {
         if (c.isDefault()) {
             throw new ApiException(ErrorCode.DEFAULT_CATEGORY);
         }
-        long posts = jdbc.sql("SELECT count(*) FROM post WHERE category_id = ?").param(categoryId)
+        long posts = jdbc.sql("SELECT count(*) FROM posts WHERE category_id = ?").param(categoryId)
                 .query(Long.class).single();
         if (posts > 0) {
             throw ApiException.withDetails(ErrorCode.CATEGORY_HAS_POSTS, Messages.categoryHasPosts(posts),
                     Map.of("postCount", posts));
         }
-        jdbc.sql("DELETE FROM category WHERE id = ?").param(categoryId).update();
+        jdbc.sql("DELETE FROM categories WHERE id = ?").param(categoryId).update();
     }
 }

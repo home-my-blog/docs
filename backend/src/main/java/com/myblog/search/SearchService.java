@@ -34,7 +34,7 @@ public class SearchService {
 
     public Map<String, Object> search(String raw, String type, Integer page) {
         KeywordQuery q = KeywordQuery.parse(raw, props.search().minLength(), props.search().maxLength());
-        jdbc.sql("INSERT INTO search_log (keyword, searched_at) VALUES (?, ?)")
+        jdbc.sql("INSERT INTO search_logs (keyword, searched_at) VALUES (?, ?)")
                 .params(q.normalized(), clock.nowOffset()).update();
         String t = type == null ? "all" : type;
         boolean all = t.equals("all");
@@ -62,10 +62,10 @@ public class SearchService {
             String k = "w" + i;
             params.put(k, q.patterns().get(i));
             conds.add("(b.name ILIKE :" + k + " ESCAPE '\\' OR m.nickname ILIKE :" + k + " ESCAPE '\\' OR b.description ILIKE :"
-                    + k + " ESCAPE '\\' OR t.name ILIKE :" + k + " ESCAPE '\\' OR EXISTS (SELECT 1 FROM category c WHERE c.blog_id = b.id AND c.name ILIKE :"
+                    + k + " ESCAPE '\\' OR t.name ILIKE :" + k + " ESCAPE '\\' OR EXISTS (SELECT 1 FROM categories c WHERE c.blog_id = b.id AND c.name ILIKE :"
                     + k + " ESCAPE '\\'))");
         }
-        String from = " FROM blog b JOIN member m ON m.id = b.owner_id JOIN topic t ON t.id = b.topic_id WHERE "
+        String from = " FROM blogs b JOIN members m ON m.id = b.owner_id JOIN topics t ON t.id = b.topic_id WHERE "
                 + String.join(" AND ", conds);
         long total = jdbc.sql("SELECT count(*)" + from).params(params).query(Long.class).single();
         int size = props.post().pageSize();
@@ -81,7 +81,7 @@ public class SearchService {
 
     @Scheduled(cron = "0 30 4 * * *", zone = "Asia/Seoul")
     public void purgeOldLogs() {
-        jdbc.sql("DELETE FROM search_log WHERE searched_at < ?")
+        jdbc.sql("DELETE FROM search_logs WHERE searched_at < ?")
                 .param(clock.nowOffset().minus(props.search().logRetention())).update();
     }
 }

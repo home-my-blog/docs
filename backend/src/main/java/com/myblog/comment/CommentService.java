@@ -43,8 +43,8 @@ public class CommentService {
     private static final String SELECT = """
             SELECT cm.id, cm.post_id, cm.author_id, m.nickname AS author_nickname, cm.body, cm.created_at,
                    b.owner_id AS blog_owner_id
-            FROM comment cm JOIN post p ON p.id = cm.post_id JOIN blog b ON b.id = p.blog_id
-            LEFT JOIN member m ON m.id = cm.author_id
+            FROM comments cm JOIN posts p ON p.id = cm.post_id JOIN blogs b ON b.id = p.blog_id
+            LEFT JOIN members m ON m.id = cm.author_id
             """;
 
     static Map<String, Object> view(CommentRow c, Long viewer) {
@@ -65,7 +65,7 @@ public class CommentService {
     }
 
     public long count(long postId) {
-        return jdbc.sql("SELECT count(*) FROM comment WHERE post_id = ?").param(postId).query(Long.class).single();
+        return jdbc.sql("SELECT count(*) FROM comments WHERE post_id = ?").param(postId).query(Long.class).single();
     }
 
     public Map<String, Object> create(long postId, long memberId, String rawBody) {
@@ -83,7 +83,7 @@ public class CommentService {
             throw new ApiException(ErrorCode.COMMENT_TOO_SOON); // 5초 안에 다시 등록 (CF-18-7)
         }
         var keys = new GeneratedKeyHolder();
-        jdbc.sql("INSERT INTO comment (post_id, author_id, body, created_at) VALUES (?, ?, ?, ?)")
+        jdbc.sql("INSERT INTO comments (post_id, author_id, body, created_at) VALUES (?, ?, ?, ?)")
                 .params(postId, memberId, body, clock.nowOffset()).update(keys, "id");
         long id = keys.getKey().longValue();
         return view(jdbc.sql(SELECT + " WHERE cm.id = ?").param(id).query(CommentRow.class).single(), memberId);
@@ -96,6 +96,6 @@ public class CommentService {
         if (!Long.valueOf(memberId).equals(c.authorId()) && c.blogOwnerId() != memberId) {
             throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
         }
-        jdbc.sql("DELETE FROM comment WHERE id = ?").param(commentId).update();
+        jdbc.sql("DELETE FROM comments WHERE id = ?").param(commentId).update();
     }
 }
