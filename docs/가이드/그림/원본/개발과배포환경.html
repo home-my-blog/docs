@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1500px; height: 640px; background: #fff; font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: #1e293b; padding: 28px 32px; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .sub { font-size: 15px; color: #64748b; margin-bottom: 16px; }
+  .zone { border: 2.5px solid; border-radius: 18px; padding: 16px 20px 20px; margin-bottom: 20px; }
+  .zone h2 { font-size: 19px; margin-bottom: 12px; }
+  .dev { border-color: #3b82f6; background: #f5f9ff; }
+  .prod { border-color: #f59e0b; background: #fffbeb; border-style: dashed; }
+  .row { display: flex; align-items: center; gap: 0; }
+  .box { border-radius: 14px; padding: 14px 16px; border: 2.5px solid; }
+  .box b { font-size: 18px; display: block; margin-bottom: 5px; }
+  .box span { font-size: 14.5px; line-height: 1.45; color: #334155; }
+  .ico { font-size: 26px; margin-bottom: 3px; }
+  .a { background: #fef9c3; border-color: #eab308; width: 300px; }
+  .b { background: #ffedd5; border-color: #f97316; width: 330px; }
+  .c { background: #f0fdf4; border-color: #22c55e; border-style: dashed; flex: 1; }
+  .store { display: flex; gap: 12px; margin-top: 10px; }
+  .st { flex: 1; background: #dcfce7; border: 2px solid #22c55e; border-radius: 10px; padding: 9px 10px; text-align: center; font-size: 14.5px; }
+  .st b { font-size: 16px; margin: 0 0 2px; }
+  .arrow-cell { width: 70px; padding: 0 6px; }
+  .arrow { position: relative; height: 3px; background: #475569; }
+  .arrow::after { content: ""; position: absolute; right: -2px; top: -6px; border-left: 12px solid #475569; border-top: 7.5px solid transparent; border-bottom: 7.5px solid transparent; }
+  .cmd { margin-top: 12px; font-size: 14.5px; background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 8px 14px; display: inline-block; font-family: Menlo, monospace; }
+  .opts { display: flex; gap: 14px; }
+  .opt { flex: 1; background: #fff; border: 2px solid #fcd34d; border-radius: 12px; padding: 12px 14px; }
+  .opt b { font-size: 16.5px; display: block; margin-bottom: 6px; }
+  .opt span { font-size: 14.5px; line-height: 1.5; color: #334155; }
+  .q { font-size: 15px; margin-bottom: 10px; color: #92400e; }
+</style>
+</head>
+<body>
+  <h1>개발할 때와 배포할 때는 환경이 다릅니다</h1>
+  <div class="sub">개발은 내 컴퓨터에서 하고, 배포는 학교가 무엇을 제공하는지 확인한 뒤에 정합니다</div>
+
+  <div class="zone dev">
+    <h2>🧑‍💻 개발: 내 컴퓨터 (지금 하는 방식)</h2>
+    <div class="row">
+      <div class="box a"><div class="ico">🖥️</div><b>화면 개발 서버 (Vite)</b><span>터미널에서 실행합니다.<br><code>npm run dev</code></span></div>
+      <div class="arrow-cell"><div class="arrow"></div></div>
+      <div class="box b"><div class="ico">⚙️</div><b>Spring Boot 서버</b><span>IntelliJ에서 실행합니다.<br>코드를 고치면 바로 확인할 수 있습니다.</span></div>
+      <div class="arrow-cell"><div class="arrow"></div></div>
+      <div class="box c"><div class="ico">📦</div><b>Docker Compose로 한 번에 켜는 상자들</b>
+        <div class="store"><div class="st"><b>PostgreSQL</b>데이터·세션</div><div class="st"><b>Redis</b>인증번호 등</div><div class="st"><b>MinIO</b>이미지</div></div>
+        <div class="cmd">$ docker compose up -d</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="zone prod">
+    <h2>🚀 배포: 환경 미정 (학교가 무엇을 제공하느냐에 따라 달라짐)</h2>
+    <div class="q">먼저 확인할 것: ① 배포까지 하나요? ② DB·Redis·MinIO를 학교가 제공하나요? ③ 앱을 올리는 곳은 어떤 형태인가요?</div>
+    <div class="opts">
+      <div class="opt"><b>경우 1. 저장소 서버를 학교가 제공</b><span>DB·Redis·MinIO 접속 정보(주소, 아이디, 비밀번호)만 받아서 설정에 적습니다. Compose는 내 컴퓨터에서만 씁니다.</span></div>
+      <div class="opt"><b>경우 2. 앱 올리는 곳이 쿠버네티스</b><span>우리 구조는 서버 한 대로 만들되, 올릴 때는 학교 양식(Dockerfile과 쿠버네티스 설정)을 따라야 할 수 있습니다.</span></div>
+      <div class="opt"><b>경우 3. 서버 컴퓨터 한 대</b><span>Compose에 서버와 화면까지 넣어서 한 대에 올립니다. 아무것도 제공되지 않으면 직접 서버를 구해야 합니다.</span></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+flowchart TB
+  comment["comment 댓글"] --> post["post 글"]
+  stats["stats 통계"] --> post
+  search["search 검색·인기 검색어"] --> post
+  post --> blog["blog 블로그·분류"]
+  blog --> user["user 회원·인증"]
+  comment --> user
+  classDef top fill:#ffedd5,stroke:#f97316,color:#1e293b
+  classDef mid fill:#fef9c3,stroke:#eab308,color:#1e293b
+  classDef base fill:#dbeafe,stroke:#3b82f6,color:#1e293b
+  class comment,stats,search top
+  class post,blog mid
+  class user base
