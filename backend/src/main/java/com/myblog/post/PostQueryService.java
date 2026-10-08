@@ -20,11 +20,15 @@ import org.springframework.stereotype.Service;
  * 공개 범위 조건은 아래 두 개뿐이다.
  * - PUBLIC_ONLY: 홈·주제·검색·태그·이전/다음·인기 글
  * - VISIBLE_TO: 글 상세, 내 블로그 목록 (공개 글 또는 내가 쓴 글)
+ * 둘 다 탈퇴 신청한 회원의 글은 뺀다(보관 기간에는 아무에게도 보이지 않는다). 탈퇴 회원은 적어서
+ * members의 부분 인덱스(deleted_at)로 그 목록을 바로 찾는다.
  */
 @Service
 public class PostQueryService {
-    static final String PUBLIC_ONLY = "p.visibility = 'PUBLIC'";
-    static final String VISIBLE_TO = "(p.visibility = 'PUBLIC' OR p.author_id = :viewer)";
+    public static final String ACTIVE_AUTHOR =
+            "p.author_id NOT IN (SELECT wm.id FROM members wm WHERE wm.deleted_at IS NOT NULL)";
+    static final String PUBLIC_ONLY = "p.visibility = 'PUBLIC' AND " + ACTIVE_AUTHOR;
+    static final String VISIBLE_TO = "(p.visibility = 'PUBLIC' OR p.author_id = :viewer) AND " + ACTIVE_AUTHOR;
 
     public record PostRow(long id, long blogId, String blogName, long authorId, long categoryId, String categoryName,
                           String topicCode, String topicName, String title, String body, String visibility,

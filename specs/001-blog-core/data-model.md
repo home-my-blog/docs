@@ -35,7 +35,19 @@ daily_stats (blogs, posts NULL 가능, date)     search_logs (keyword, time)
 | locked_until | timestamptz | NULL. 현재 시각보다 뒤면 로그인 거부 (CF-02-6) |
 | created_at | timestamptz | NOT NULL. 가입일 (CF-15-3) |
 | updated_at | timestamptz | NOT NULL |
+| deleted_at | timestamptz | NULL. 탈퇴 신청 시각 (소프트 삭제). 부분 인덱스 `WHERE deleted_at IS NOT NULL` |
+| anonymized_at | timestamptz | NULL. 보관 기간이 지나 개인정보를 지운 시각. `deleted_at`이 있어야 한다(CHECK) |
 
+- 탈퇴(2026-10-08, 팀 리뷰 — `V4__soft_withdraw.sql`): 탈퇴하면 `deleted_at`만 찍고 모든 기기에서 로그아웃한다.
+  - 보관 기간(`myblog.member.withdraw-keep`, 기본 30일)에는 블로그·글이 아무에게도 보이지 않고(`PostQueryService.ACTIVE_AUTHOR`,
+    블로그 조회·목록·검색에서 `deleted_at IS NULL`), 댓글은 "탈퇴한 사용자"로 보인다. 같은 이메일로 가입할 수 없고
+    (`EMAIL_WITHDRAWN`), 비밀번호 찾기 메일도 가지 않는다. 로그인하면 `ACCOUNT_WITHDRAWN`(409, `restorableUntil`)으로
+    알리고, 화면이 복구할지 물은 뒤 `POST /api/auth/restore`로 복구하며 로그인한다.
+  - 보관 기간이 지나면 매일 04:40(한국 시간) `WithdrawalCleaner`가 블로그·분류·글(과 그 글의 댓글·좋아요·태그·신고·통계·이미지),
+    내가 누른 좋아요, 내가 올린 이미지를 지우고, 회원 줄은 남긴 채 개인정보만 바꾼다: 이메일 → `del_랜덤값@deleted.invalid`,
+    닉네임 → `del랜덤값`, 비밀번호 해시 → 쓸 수 없는 값, 소개 → 빈 값, `anonymized_at` 기록. 남의 글에 단 댓글과 신고
+    기록은 회원 번호로 남는다. 이메일이 바뀌므로 그 뒤에는 같은 이메일로 다시 가입할 수 있다.
+  - 개인정보는 보관 기간이 끝나면 지체 없이 파기한다는 원칙에 맞춘다. 서버 로그·백업의 보관 기간은 운영에서 따로 정한다.
 - 로그인 실패·비밀번호 변경/탈퇴의 현재 비밀번호 오입력 시 `failed_login_count + 1`. 5가 되면
   `locked_until = now + 10분`, 카운트 0. 로그인 성공·비밀번호 찾기 완료 시 0, `locked_until = NULL`
   (CF-02-7, CF-15-14, CF-25-9).

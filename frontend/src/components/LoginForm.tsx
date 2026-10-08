@@ -1,8 +1,8 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { errorMessage, isApiError } from '../api/client';
-import { login } from '../api/endpoints';
-import { minutesUntil } from '../lib/format';
+import { login, restoreAccount } from '../api/endpoints';
+import { formatDateTime, minutesUntil } from '../lib/format';
 import { isValidEmail, normalizeEmail } from '../lib/validation';
 import { AUTH } from '../messages';
 import { FieldError, FormMessage } from './Status';
@@ -40,8 +40,21 @@ export function LoginForm({ initialEmail = '', notice, onSuccess, onForgot }: Lo
     busy.current = true;
     setSubmitting(true);
     setFormError(null);
+    const credentials = { email: normalizeEmail(email), password };
     try {
-      await login({ email: normalizeEmail(email), password });
+      try {
+        await login(credentials);
+      } catch (err) {
+        // 탈퇴 신청 후 보관 기간 안: 복구할지 묻고, 그러겠다면 복구하면서 로그인한다
+        if (!(isApiError(err) && err.code === 'ACCOUNT_WITHDRAWN')) throw err;
+        const until = typeof err.details.restorableUntil === 'string' ? err.details.restorableUntil : null;
+        if (!window.confirm(AUTH.restoreConfirm(until ? formatDateTime(until) : null))) {
+          setFormError(AUTH.withdrawnNotRestored);
+          setPassword('');
+          return;
+        }
+        await restoreAccount(credentials);
+      }
       await onSuccess();
     } catch (err) {
       if (isApiError(err) && err.code === 'ACCOUNT_LOCKED') {

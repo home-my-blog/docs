@@ -51,6 +51,8 @@ export interface AppConfig {
     imagesPerPost: number;
     searchMin: number;
     searchMax: number;
+    /** 탈퇴 후 복구할 수 있는 기간(일) */
+    withdrawKeepDays: number;
   };
   pageSize: number;
   trendingIntervalSeconds: number;

@@ -135,7 +135,7 @@ public class ManageService {
                 .param(blogId).query(Long.class).single();
         int preview = props.comment().previewLength();
         var result = PageRequests.page(page, props.post().pageSize(), total, (limit, offset) -> jdbc.sql("""
-                SELECT cm.id, cm.parent_id, cm.author_id, m.nickname, cm.body, cm.created_at, p.id AS post_id, p.title
+                SELECT cm.id, cm.parent_id, CASE WHEN m.deleted_at IS NULL THEN cm.author_id END AS author_id, m.nickname, cm.body, cm.created_at, p.id AS post_id, p.title
                 FROM comments cm JOIN posts p ON p.id = cm.post_id LEFT JOIN members m ON m.id = cm.author_id
                 WHERE p.blog_id = ? ORDER BY cm.created_at DESC, cm.id DESC LIMIT ? OFFSET ?""")
                 .params(blogId, limit, offset).query((rs, i) -> {

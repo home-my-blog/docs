@@ -27,6 +27,7 @@ public class LoginService {
     private final MemberRepository members;
     private final PasswordEncoder encoder;
     private final MyBlogProperties.Login rules;
+    private final java.time.Duration withdrawKeep;
     private final KoreanClock clock;
     private final SessionAuthenticationStrategy sessionStrategy;
     private final SecurityContextRepository contextRepository;
@@ -38,13 +39,41 @@ public class LoginService {
         this.members = members;
         this.encoder = encoder;
         this.rules = props.login();
+        this.withdrawKeep = props.member().withdrawKeep();
         this.clock = clock;
         this.sessionStrategy = sessionStrategy;
         this.contextRepository = contextRepository;
         this.dummyHash = encoder.encode("dummy-password-1!");
     }
 
+    /**
+     * 탈퇴 신청한 회원은 비밀번호가 맞아도 로그인하지 않고 ACCOUNT_WITHDRAWN으로 알린다.
+     * 화면이 복구할지 묻고, 그러겠다고 하면 {@link #restore}를 부른다.
+     */
     public Member login(String rawEmail, String password, HttpServletRequest req, HttpServletResponse res) {
+        Member m = authenticate(rawEmail, password);
+        if (m.withdrawn()) {
+            throw ApiException.withDetails(ErrorCode.ACCOUNT_WITHDRAWN, Messages.ACCOUNT_WITHDRAWN,
+                    Map.of("restorableUntil", m.deletedAt().plus(withdrawKeep)
+                            .atZoneSameInstant(KoreanClock.SEOUL).toOffsetDateTime()));
+        }
+        startSession(m, req, res);
+        return m;
+    }
+
+    /** 탈퇴 복구 (보관 기간 안): 비밀번호를 다시 확인하고 탈퇴 표시를 지운 뒤 로그인한다. */
+    @Transactional
+    public Member restore(String rawEmail, String password, HttpServletRequest req, HttpServletResponse res) {
+        Member m = authenticate(rawEmail, password);
+        if (!m.withdrawn()) {
+            throw new ApiException(ErrorCode.LOGIN_FAILED);
+        }
+        members.restore(m.id(), clock.nowOffset());
+        startSession(m, req, res);
+        return members.findById(m.id()).orElseThrow();
+    }
+
+    private Member authenticate(String rawEmail, String password) {
         String email = rawEmail == null ? "" : rawEmail.strip().toLowerCase(java.util.Locale.ROOT);
         var found = members.findByEmail(email);
         if (found.isEmpty()) {
@@ -54,7 +83,10 @@ public class LoginService {
         Member m = found.get();
         verifyPassword(m, password, ErrorCode.LOGIN_FAILED);
         members.clearFailures(m.id());
+        return m;
+    }
 
+    private void startSession(Member m, HttpServletRequest req, HttpServletResponse res) {
         var auth = new UsernamePasswordAuthenticationToken(m.id(), null,
                 List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
         req.getSession(true);
@@ -63,7 +95,6 @@ public class LoginService {
         context.setAuthentication(auth);
         SecurityContextHolder.setContext(context);
         contextRepository.saveContext(context, req, res);
-        return m;
     }
 
     /**

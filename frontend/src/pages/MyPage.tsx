@@ -151,7 +151,7 @@ function MyPageForms({ profile }: { profile: MyProfile }) {
     if (!ack) return setWError(ACCOUNT.acknowledgeRequired);
     if (!wPw) return setWError(AUTH.required);
     if (wBusy.current) return;
-    if (!window.confirm(ACCOUNT.withdrawConfirm)) return;
+    if (!window.confirm(ACCOUNT.withdrawConfirm(limits.withdrawKeepDays))) return;
     wBusy.current = true;
     setWithdrawing(true);
     setWError(null);
@@ -277,10 +277,17 @@ function MyPageForms({ profile }: { profile: MyProfile }) {
         <h2 className="section-card__title">회원 탈퇴</h2>
         <div className="notice">
           <p>
-            <strong>탈퇴하면 되돌릴 수 없습니다.</strong>
+            <strong>
+              탈퇴하면 바로 로그아웃되고, 내 블로그와 글은 다른 사람에게 보이지 않습니다. {limits.withdrawKeepDays}일 안에
+              다시 로그인하면 복구할 수 있습니다.
+            </strong>
           </p>
-          <p>삭제되는 것: 내 블로그, 글, 분류, 내 블로그 글에 달린 댓글, 내가 누른 좋아요</p>
+          <p>
+            {limits.withdrawKeepDays}일이 지나면 삭제되는 것: 내 블로그, 글, 분류, 내 블로그 글에 달린 댓글, 내가 누른 좋아요,
+            이메일·닉네임 등 개인정보
+          </p>
           <p>남는 것: 다른 사람 글에 단 댓글 (작성자는 “탈퇴한 사용자”로 표시)</p>
+          <p>그동안에는 같은 이메일로 다시 가입할 수 없습니다.</p>
         </div>
         <form className="form" onSubmit={onWithdraw} noValidate>
           <div className="field">

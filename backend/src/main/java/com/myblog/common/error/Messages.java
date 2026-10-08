@@ -33,6 +33,9 @@ public final class Messages {
     public static final String SAME_AS_CURRENT = "현재 비밀번호와 다른 값을 입력해 주세요";
     public static final String PASSWORD_CHANGED = "비밀번호를 변경했습니다";
     public static final String ACKNOWLEDGE_REQUIRED = "안내를 읽고 확인란에 체크해 주세요";
+    public static final String ACCOUNT_WITHDRAWN = "탈퇴 신청한 계정입니다. 보관 기간이 지나기 전이라 복구할 수 있습니다";
+    public static final String EMAIL_WITHDRAWN =
+            "탈퇴 처리 중인 이메일입니다. 로그인하면 복구할 수 있고, 보관 기간이 지나면 새로 가입할 수 있습니다";
     public static final String BIO_RULE = "소개는 100자 이하로 입력해 주세요";
 
     // 03-코어

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class MemberRepository {
     private static final String COLUMNS =
-            "id, email, nickname, password_hash, bio, failed_login_count, locked_until, created_at";
+            "id, email, nickname, password_hash, bio, failed_login_count, locked_until, created_at, deleted_at";
     private final JdbcClient jdbc;
 
     public MemberRepository(JdbcClient jdbc) {
@@ -24,8 +24,23 @@ public class MemberRepository {
         return jdbc.sql("SELECT " + COLUMNS + " FROM members WHERE email = ?").param(email).query(Member.class).optional();
     }
 
+    /** 탈퇴 신청한 회원도 포함한다 (보관 기간에는 같은 이메일로 다시 가입할 수 없다). */
     public boolean existsByEmail(String email) {
         return jdbc.sql("SELECT count(*) FROM members WHERE email = ?").param(email).query(Long.class).single() > 0;
+    }
+
+    public boolean existsActiveByEmail(String email) {
+        return jdbc.sql("SELECT count(*) FROM members WHERE email = ? AND deleted_at IS NULL").param(email)
+                .query(Long.class).single() > 0;
+    }
+
+    public void markWithdrawn(long id, OffsetDateTime now) {
+        jdbc.sql("UPDATE members SET deleted_at = ?, updated_at = ? WHERE id = ?").params(now, now, id).update();
+    }
+
+    public void restore(long id, OffsetDateTime now) {
+        jdbc.sql("UPDATE members SET deleted_at = NULL, updated_at = ? WHERE id = ? AND anonymized_at IS NULL")
+                .params(now, id).update();
     }
 
     public boolean existsByNicknameKey(String key, Long exceptId) {
@@ -60,9 +75,5 @@ public class MemberRepository {
     public void updateProfile(long id, String nickname, String nicknameKey, String bio, OffsetDateTime now) {
         jdbc.sql("UPDATE members SET nickname = ?, nickname_key = ?, bio = ?, updated_at = ? WHERE id = ?")
                 .params(nickname, nicknameKey, bio, now, id).update();
-    }
-
-    public void delete(long id) {
-        jdbc.sql("DELETE FROM members WHERE id = ?").param(id).update();
     }
 }

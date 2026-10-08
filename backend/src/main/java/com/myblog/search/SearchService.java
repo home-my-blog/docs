@@ -65,8 +65,8 @@ public class SearchService {
                     + k + " ESCAPE '\\' OR t.name ILIKE :" + k + " ESCAPE '\\' OR EXISTS (SELECT 1 FROM categories c WHERE c.blog_id = b.id AND c.name ILIKE :"
                     + k + " ESCAPE '\\'))");
         }
-        String from = " FROM blogs b JOIN members m ON m.id = b.owner_id JOIN topics t ON t.id = b.topic_id WHERE "
-                + String.join(" AND ", conds);
+        String from = " FROM blogs b JOIN members m ON m.id = b.owner_id JOIN topics t ON t.id = b.topic_id"
+                + " WHERE m.deleted_at IS NULL AND " + String.join(" AND ", conds);
         long total = jdbc.sql("SELECT count(*)" + from).params(params).query(Long.class).single();
         int size = props.post().pageSize();
         return PageRequests.page(page, size, total, (limit, offset) -> {

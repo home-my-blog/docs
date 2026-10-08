@@ -7,13 +7,10 @@ import com.myblog.common.Texts;
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.common.error.Messages;
-import com.myblog.image.ImageService;
 import com.myblog.mail.MailSender;
 import com.myblog.mail.MailTemplates;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,14 +33,12 @@ public class MyPageService {
     private final MailSender mail;
     private final MailTemplates templates;
     private final BlogService blogs;
-    private final ImageService images;
-    private final JdbcClient jdbc;
     private final MyBlogProperties props;
     private final KoreanClock clock;
 
     public MyPageService(MemberRepository members, NicknamePolicy nicknames, PasswordPolicy passwords,
                          LoginService login, PasswordEncoder encoder, MemberSessionService sessions, MailSender mail,
-                         MailTemplates templates, BlogService blogs, ImageService images, JdbcClient jdbc,
+                         MailTemplates templates, BlogService blogs,
                          MyBlogProperties props, KoreanClock clock) {
         this.members = members;
         this.nicknames = nicknames;
@@ -54,8 +49,6 @@ public class MyPageService {
         this.mail = mail;
         this.templates = templates;
         this.blogs = blogs;
-        this.images = images;
-        this.jdbc = jdbc;
         this.props = props;
         this.clock = clock;
     }
@@ -107,8 +100,9 @@ public class MyPageService {
     }
 
     /**
-     * 탈퇴 (CF-15-17~21, research §11). 내 블로그·글·분류와 그 글의 댓글·좋아요·태그 연결·이미지, 내가 누른 좋아요,
-     * 내 신고를 지운다. 남의 글에 단 댓글은 작성자 칸이 비워져 "탈퇴한 사용자"로 남는다(FK ON DELETE SET NULL).
+     * 탈퇴 (CF-15-17~21): 소프트 삭제. deleted_at만 찍고 모든 기기에서 로그아웃한다.
+     * 그때부터 블로그와 글은 다른 사람에게 보이지 않고, 댓글은 "탈퇴한 사용자"로 보인다.
+     * 보관 기간 안에 로그인하면 복구할 수 있고, 지나면 {@link WithdrawalCleaner}가 지우고 익명화한다.
      */
     @Transactional
     public void withdraw(long memberId, Withdraw req) {
@@ -117,14 +111,7 @@ public class MyPageService {
             throw new ApiException(ErrorCode.ACKNOWLEDGE_REQUIRED);
         }
         login.verifyPassword(m, req.password(), ErrorCode.CURRENT_PASSWORD_MISMATCH);
-        List<String> keys = jdbc.sql("""
-                SELECT storage_key FROM post_images
-                WHERE uploader_id = ? OR post_id IN (SELECT id FROM posts WHERE author_id = ?)""")
-                .params(memberId, memberId).query(String.class).list();
-        jdbc.sql("DELETE FROM posts WHERE author_id = ?").param(memberId).update(); // 분류 RESTRICT보다 먼저
-        jdbc.sql("DELETE FROM blogs WHERE owner_id = ?").param(memberId).update();
-        members.delete(memberId);
-        images.deleteFilesAfterCommit(keys);
+        members.markWithdrawn(memberId, clock.nowOffset());
         sessions.expireAll(memberId, null);
     }
 }

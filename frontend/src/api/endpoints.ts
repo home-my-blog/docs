@@ -50,6 +50,9 @@ export const signup = (body: { nickname: string; email: string; password: string
   api<void>('/api/auth/signup', { method: 'POST', body, skipAuthEvent: true });
 export const login = (body: { email: string; password: string }) =>
   api<{ member: Member }>('/api/auth/login', { method: 'POST', body, skipAuthEvent: true });
+/** 탈퇴 신청한 계정 복구 (보관 기간 안). 성공하면 로그인된다. */
+export const restoreAccount = (body: { email: string; password: string }) =>
+  api<{ member: Member }>('/api/auth/restore', { method: 'POST', body, skipAuthEvent: true });
 export const logout = () => api<void>('/api/auth/logout', { method: 'POST', skipAuthEvent: true });
 export const resetPassword = (body: { email: string; newPassword: string; newPasswordConfirm: string }) =>
   api<void>('/api/auth/password-reset', { method: 'POST', body, skipAuthEvent: true });

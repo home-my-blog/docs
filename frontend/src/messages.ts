@@ -27,6 +27,9 @@ export const AUTH = {
     `로그인 시도가 5회 실패해 잠겼습니다. ${minutes}분 뒤에 다시 시도해 주세요`,
   resetSent: '입력하신 이메일로 안내를 보냈습니다. 10분 안에 인증번호를 입력해 주세요',
   resetDone: '비밀번호를 변경했습니다. 새 비밀번호로 로그인해 주세요',
+  restoreConfirm: (until: string | null) =>
+    `탈퇴 신청한 계정입니다.${until ? ` ${until}까지` : ''} 복구할 수 있습니다. 지금 복구하고 로그인할까요?`,
+  withdrawnNotRestored: '탈퇴 신청한 계정입니다. 복구하려면 다시 로그인해 주세요',
   // [추가]
   required: '필수 입력 항목입니다',
   codeRequired: '인증번호를 입력해 주세요',
@@ -41,8 +44,8 @@ export const ACCOUNT = {
   currentPasswordMismatch: '현재 비밀번호가 올바르지 않습니다',
   sameAsCurrent: '현재 비밀번호와 다른 값을 입력해 주세요',
   passwordChanged: '비밀번호를 변경했습니다',
-  withdrawConfirm: '정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다',
-  withdrawn: '탈퇴가 완료되었습니다',
+  withdrawConfirm: (days: number) => `정말 탈퇴하시겠습니까? ${days}일 안에 로그인하면 복구할 수 있습니다`,
+  withdrawn: '탈퇴 신청이 완료되었습니다',
   // [추가]
   bioTooLong: (max: number) => `소개는 ${max}자 이하로 입력해 주세요`,
   acknowledgeRequired: '안내를 확인했다는 항목에 체크해 주세요',

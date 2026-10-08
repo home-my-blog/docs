@@ -37,6 +37,10 @@ public class SignupService {
 
     /** 인증번호를 보내기 전에 이메일·닉네임 중복을 검사한다 (CF-14-1: 가입된 이메일에는 보내지 않는다). */
     public void checkAvailable(String email, String nicknameRaw) {
+        if (members.findByEmail(email).filter(Member::withdrawn).isPresent()) {
+            throw ApiException.withDetails(ErrorCode.EMAIL_WITHDRAWN, ErrorCode.EMAIL_WITHDRAWN.message(),
+                    java.util.Map.of("fields", java.util.Map.of("email", ErrorCode.EMAIL_WITHDRAWN.message())));
+        }
         if (members.existsByEmail(email)) {
             throw ApiException.withDetails(ErrorCode.EMAIL_TAKEN, ErrorCode.EMAIL_TAKEN.message(),
                     java.util.Map.of("fields", java.util.Map.of("email", ErrorCode.EMAIL_TAKEN.message())));
