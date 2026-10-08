@@ -57,6 +57,7 @@ export function CommentsPage() {
               <li key={c.id} className={`mcomment${c.isNew ? ' is-new' : ''}`}>
                 <div className="mcomment__head">
                   {c.isNew && <span className="badge badge--new">NEW</span>}
+                  {c.reply && <span className="badge badge--muted">답글</span>}
                   <span className={`comment__author${c.author ? '' : ' is-withdrawn'}`}>
                     {c.author ? c.author.nickname : SOCIAL.withdrawnUser}
                   </span>
@@ -68,7 +69,8 @@ export function CommentsPage() {
                     className="link-btn link-btn--danger mcomment__delete"
                     disabled={remove.isPending}
                     onClick={() => {
-                      if (window.confirm(SOCIAL.commentDeleteConfirm)) remove.mutate(c.id);
+                      const msg = c.reply ? SOCIAL.commentDeleteConfirm : SOCIAL.commentDeleteMaybeRepliesConfirm;
+                      if (window.confirm(msg)) remove.mutate(c.id);
                     }}
                   >
                     삭제

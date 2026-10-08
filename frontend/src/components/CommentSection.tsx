@@ -3,7 +3,7 @@ import { useEffect, useId, useState, type FormEvent } from 'react';
 import { errorMessage, isApiError } from '../api/client';
 import { createComment, deleteComment, getComments } from '../api/endpoints';
 import { qk, useConfig, useMe } from '../api/queries';
-import type { PostDetail } from '../api/types';
+import type { Comment, PostDetail } from '../api/types';
 import { useRequireLogin } from '../api/useRequireLogin';
 import { useAuth } from '../auth/context';
 import { formatDateTime } from '../lib/format';
@@ -11,17 +11,93 @@ import { SOCIAL } from '../messages';
 import { ErrorBox, FieldError, Loading } from './Status';
 import { useToast } from './toastContext';
 
-/** 댓글: 오래된 순, 비회원 안내, 등록, 삭제 확인, 탈퇴한 사용자 (CF-18) */
+/** 댓글 입력칸. 원 댓글과 답글이 같이 쓴다. */
+function CommentForm({
+  label,
+  placeholder,
+  submitLabel,
+  rows,
+  pending,
+  onSubmit,
+  onCancel,
+}: {
+  label: string;
+  placeholder: string;
+  submitLabel: string;
+  rows: number;
+  pending: boolean;
+  onSubmit: (text: string) => Promise<unknown>;
+  onCancel?: () => void;
+}) {
+  const { limits } = useConfig();
+  const requireLogin = useRequireLogin();
+  const inputId = useId();
+  const [body, setBody] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const text = body.trim();
+    if (!text) return setError(SOCIAL.commentRequired);
+    if (body.length > limits.commentMax) return setError(SOCIAL.commentTooLong(limits.commentMax));
+    if (pending) return;
+    requireLogin(() =>
+      onSubmit(body).then(
+        () => {
+          setBody('');
+          setError(null);
+        },
+        (err: unknown) => {
+          if (isApiError(err) && err.status === 401) throw err; // useRequireLogin이 로그인 창을 다시 띄운다
+          setError(isApiError(err) && err.fields.body ? err.fields.body : errorMessage(err));
+        },
+      ),
+    );
+  };
+
+  return (
+    <form className={`comment-form${onCancel ? ' comment-form--reply' : ''}`} onSubmit={submit}>
+      <label htmlFor={inputId} className="sr-only">
+        {label}
+      </label>
+      <textarea
+        id={inputId}
+        className="input textarea"
+        rows={rows}
+        maxLength={limits.commentMax}
+        placeholder={placeholder}
+        value={body}
+        autoFocus={!!onCancel}
+        onChange={(e) => {
+          setBody(e.target.value);
+          setError(null);
+        }}
+      />
+      <div className="comment-form__foot">
+        <span className="counter">
+          {body.length}/{limits.commentMax}
+        </span>
+        {onCancel && (
+          <button type="button" className="btn btn--sm" onClick={onCancel}>
+            취소
+          </button>
+        )}
+        <button type="submit" className="btn btn--primary btn--sm" disabled={pending}>
+          {submitLabel}
+        </button>
+      </div>
+      <FieldError message={error} />
+    </form>
+  );
+}
+
+/** 댓글: 오래된 순, 답글 한 단계, 비회원 안내, 등록, 삭제 확인, 탈퇴한 사용자 (CF-18) */
 export function CommentSection({ post }: { post: PostDetail }) {
   const queryClient = useQueryClient();
   const { data: me } = useMe();
   const { openLogin } = useAuth();
-  const requireLogin = useRequireLogin();
   const toast = useToast();
-  const { limits } = useConfig();
-  const inputId = useId();
-  const [body, setBody] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<number | null>(null);
 
   const q = useQuery({ queryKey: qk.comments(post.id), queryFn: () => getComments(post.id) });
 
@@ -34,45 +110,82 @@ export function CommentSection({ post }: { post: PostDetail }) {
     }
   }, [q.data]);
 
-  const refresh = () => {
+  const changeCount = (delta: number) => {
+    queryClient.setQueryData<PostDetail>(qk.post(post.id), (old) =>
+      old ? { ...old, commentCount: Math.max(0, old.commentCount + delta) } : old,
+    );
     void queryClient.invalidateQueries({ queryKey: qk.comments(post.id) });
   };
 
   const add = useMutation({
-    mutationFn: (text: string) => createComment(post.id, text),
-    onSuccess: () => {
-      setBody('');
-      setError(null);
-      queryClient.setQueryData<PostDetail>(qk.post(post.id), (old) => (old ? { ...old, commentCount: old.commentCount + 1 } : old));
-      refresh();
-    },
-    onError: (e) => {
-      if (isApiError(e) && e.status === 401) return;
-      setError(isApiError(e) && e.fields.body ? e.fields.body : errorMessage(e));
+    mutationFn: ({ text, parentId }: { text: string; parentId?: number }) => createComment(post.id, text, parentId),
+    onSuccess: (_data, vars) => {
+      if (vars.parentId !== undefined) setReplyTo(null);
+      changeCount(1);
     },
   });
 
   const remove = useMutation({
-    mutationFn: (id: number) => deleteComment(id),
-    onSuccess: () => {
-      queryClient.setQueryData<PostDetail>(qk.post(post.id), (old) =>
-        old ? { ...old, commentCount: Math.max(0, old.commentCount - 1) } : old,
-      );
-      refresh();
-    },
+    mutationFn: (c: Comment) => deleteComment(c.id),
+    // 원 댓글을 지우면 답글도 함께 지워진다
+    onSuccess: (_data, c) => changeCount(-(1 + (c.replies?.length ?? 0))),
     onError: (e) => toast.show(errorMessage(e), 'error'),
   });
 
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const text = body.trim();
-    if (!text) return setError(SOCIAL.commentRequired);
-    if (body.length > limits.commentMax) return setError(SOCIAL.commentTooLong(limits.commentMax));
-    if (add.isPending) return;
-    requireLogin(() => add.mutateAsync(body));
+  const confirmRemove = (c: Comment) => {
+    const msg = c.replies?.length ? SOCIAL.commentDeleteWithRepliesConfirm : SOCIAL.commentDeleteConfirm;
+    if (window.confirm(msg)) remove.mutate(c);
   };
 
-  const count = q.data?.length ?? post.commentCount;
+  const renderComment = (c: Comment, root?: Comment) => (
+    <li key={c.id} id={`comment-${c.id}`} className={`comment${root ? ' comment--reply' : ''}`}>
+      <div className="comment__head">
+        <span className={`comment__author${c.author ? '' : ' is-withdrawn'}`}>
+          {c.author ? c.author.nickname : SOCIAL.withdrawnUser}
+        </span>
+        <time className="comment__time" dateTime={c.createdAt}>
+          {formatDateTime(c.createdAt)}
+        </time>
+        <span className="comment__actions">
+          {!root && (
+            <button
+              type="button"
+              className="link-btn comment__reply"
+              onClick={() => (me ? setReplyTo(replyTo === c.id ? null : c.id) : openLogin())}
+            >
+              답글
+            </button>
+          )}
+          {c.canDelete && (
+            <button type="button" className="link-btn" disabled={remove.isPending} onClick={() => confirmRemove(c)}>
+              삭제
+            </button>
+          )}
+        </span>
+      </div>
+      <p className="comment__body">{c.body}</p>
+      {!root && (c.replies?.length || replyTo === c.id) ? (
+        <ul className="comment-replies">
+          {c.replies?.map((r) => renderComment(r, c))}
+          {replyTo === c.id && me && (
+            <li className="comment comment--reply">
+              <CommentForm
+                label="답글 입력"
+                placeholder="답글을 입력하세요"
+                submitLabel="답글 등록"
+                rows={2}
+                pending={add.isPending}
+                onSubmit={(text) => add.mutateAsync({ text, parentId: c.id })}
+                onCancel={() => setReplyTo(null)}
+              />
+            </li>
+          )}
+        </ul>
+      ) : null}
+    </li>
+  );
+
+  const count = q.data ? q.data.reduce((n, c) => n + 1 + (c.replies?.length ?? 0), 0) : post.commentCount;
 
   return (
     <section className="comments" id="comments" aria-label="댓글">
@@ -87,62 +200,18 @@ export function CommentSection({ post }: { post: PostDetail }) {
       ) : q.data.length === 0 ? (
         <p className="muted">아직 댓글이 없습니다</p>
       ) : (
-        <ul className="comment-list">
-          {q.data.map((c) => (
-            <li key={c.id} id={`comment-${c.id}`} className="comment">
-              <div className="comment__head">
-                <span className={`comment__author${c.author ? '' : ' is-withdrawn'}`}>
-                  {c.author ? c.author.nickname : SOCIAL.withdrawnUser}
-                </span>
-                <time className="comment__time" dateTime={c.createdAt}>
-                  {formatDateTime(c.createdAt)}
-                </time>
-                {c.canDelete && (
-                  <button
-                    type="button"
-                    className="link-btn comment__delete"
-                    disabled={remove.isPending}
-                    onClick={() => {
-                      if (window.confirm(SOCIAL.commentDeleteConfirm)) remove.mutate(c.id);
-                    }}
-                  >
-                    삭제
-                  </button>
-                )}
-              </div>
-              <p className="comment__body">{c.body}</p>
-            </li>
-          ))}
-        </ul>
+        <ul className="comment-list">{q.data.map((c) => renderComment(c))}</ul>
       )}
 
       {me ? (
-        <form className="comment-form" onSubmit={onSubmit}>
-          <label htmlFor={inputId} className="sr-only">
-            댓글 입력
-          </label>
-          <textarea
-            id={inputId}
-            className="input textarea"
-            rows={3}
-            maxLength={limits.commentMax}
-            placeholder="댓글을 입력하세요"
-            value={body}
-            onChange={(e) => {
-              setBody(e.target.value);
-              setError(null);
-            }}
-          />
-          <div className="comment-form__foot">
-            <span className="counter">
-              {body.length}/{limits.commentMax}
-            </span>
-            <button type="submit" className="btn btn--primary btn--sm" disabled={add.isPending}>
-              댓글 등록
-            </button>
-          </div>
-          <FieldError message={error} />
-        </form>
+        <CommentForm
+          label="댓글 입력"
+          placeholder="댓글을 입력하세요"
+          submitLabel="댓글 등록"
+          rows={3}
+          pending={add.isPending}
+          onSubmit={(text) => add.mutateAsync({ text })}
+        />
       ) : (
         <div className="comment-login">
           <p>{SOCIAL.commentLoginRequired}</p>

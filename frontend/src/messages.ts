@@ -89,6 +89,8 @@ export const EXPLORE = {
 export const SOCIAL = {
   commentLoginRequired: '로그인한 회원만 댓글을 쓸 수 있습니다',
   commentDeleteConfirm: '댓글을 삭제할까요?',
+  commentDeleteWithRepliesConfirm: '댓글을 삭제할까요? 이 댓글에 달린 답글도 함께 삭제됩니다',
+  commentDeleteMaybeRepliesConfirm: '댓글을 삭제할까요? 답글이 있으면 함께 삭제됩니다',
   imageRule: '이미지는 5MB 이하의 jpg, png, gif, webp만 올릴 수 있습니다',
   alreadyReported: '이미 신고한 글입니다',
   reported: '신고가 접수되었습니다',

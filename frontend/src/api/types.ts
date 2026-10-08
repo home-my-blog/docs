@@ -258,10 +258,14 @@ export interface PostSaveRequest {
 
 export interface Comment {
   id: number;
+  /** null이면 원 댓글, 값이 있으면 그 원 댓글의 답글 (한 단계) */
+  parentId: number | null;
   author: { nickname: string } | null;
   body: string;
   createdAt: ISODateString;
   canDelete: boolean;
+  /** 원 댓글에만 있다. 오래된 순 */
+  replies?: Comment[];
 }
 
 export interface LikeResponse {
@@ -340,6 +344,8 @@ export interface ManageCommentItem {
   createdAt: ISODateString;
   preview: string;
   post: { id: number; title: string };
+  /** 답글이면 true */
+  reply: boolean;
   isNew: boolean;
 }
 

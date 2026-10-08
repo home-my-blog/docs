@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PostDetail } from '../api/types';
 import { mockFetch, renderWithProviders } from '../test/utils';
@@ -34,8 +35,8 @@ describe('CommentSection (CF-18)', () => {
       {
         path: '/api/posts/7/comments',
         body: [
-          { id: 1, author: { nickname: '준호' }, body: '좋아요', createdAt: '2026-10-01T11:00:00+09:00', canDelete: false },
-          { id: 2, author: null, body: '옛 댓글', createdAt: '2026-10-01T12:00:00+09:00', canDelete: false },
+          { id: 1, parentId: null, author: { nickname: '준호' }, body: '좋아요', createdAt: '2026-10-01T11:00:00+09:00', canDelete: false, replies: [] },
+          { id: 2, parentId: null, author: null, body: '옛 댓글', createdAt: '2026-10-01T12:00:00+09:00', canDelete: false, replies: [] },
         ],
       },
     ]);
@@ -53,13 +54,40 @@ describe('CommentSection (CF-18)', () => {
       {
         path: '/api/posts/7/comments',
         body: [
-          { id: 1, author: { nickname: '준호' }, body: '남의 댓글', createdAt: '2026-10-01T11:00:00+09:00', canDelete: false },
-          { id: 2, author: { nickname: '서연' }, body: '내 댓글', createdAt: '2026-10-01T12:00:00+09:00', canDelete: true },
+          { id: 1, parentId: null, author: { nickname: '준호' }, body: '남의 댓글', createdAt: '2026-10-01T11:00:00+09:00', canDelete: false, replies: [] },
+          { id: 2, parentId: null, author: { nickname: '서연' }, body: '내 댓글', createdAt: '2026-10-01T12:00:00+09:00', canDelete: true, replies: [] },
         ],
       },
     ]);
     renderWithProviders(<CommentSection post={post} />);
     expect(await screen.findByLabelText('댓글 입력')).toBeInTheDocument();
     expect(await screen.findAllByRole('button', { name: '삭제' })).toHaveLength(1);
+  });
+
+  it('답글은 원 댓글 아래에 보이고, 답글에는 답글 버튼이 없다. 답글 버튼을 누르면 답글 입력칸이 열린다', async () => {
+    mockFetch([
+      { path: '/api/auth/me', body: { member: { id: 3, nickname: '서연', email: 's@b.com' }, blog: { id: 5, name: '서연의 블로그' }, newCommentCount: 0 } },
+      {
+        path: '/api/posts/7/comments',
+        body: [
+          {
+            id: 1, parentId: null, author: { nickname: '준호' }, body: '원 댓글', createdAt: '2026-10-01T11:00:00+09:00', canDelete: false,
+            replies: [
+              { id: 3, parentId: 1, author: { nickname: '서연' }, body: '답글이에요', createdAt: '2026-10-01T13:00:00+09:00', canDelete: true },
+            ],
+          },
+        ],
+      },
+    ]);
+    const user = userEvent.setup();
+    renderWithProviders(<CommentSection post={post} />);
+    expect(await screen.findByText('답글이에요')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument(); // 원 댓글 1 + 답글 1
+    const replyButtons = screen.getAllByRole('button', { name: '답글' });
+    expect(replyButtons).toHaveLength(1);
+    await user.click(replyButtons[0]);
+    expect(screen.getByLabelText('답글 입력')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '취소' }));
+    expect(screen.queryByLabelText('답글 입력')).toBeNull();
   });
 });
