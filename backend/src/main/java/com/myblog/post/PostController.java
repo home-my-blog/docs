@@ -1,8 +1,8 @@
 package com.myblog.post;
 
-import com.myblog.common.MyBlogProperties;
 import com.myblog.blog.BlogService;
 import com.myblog.comment.CommentService;
+import com.myblog.common.MyBlogProperties;
 import com.myblog.common.PageResponse;
 import com.myblog.image.ImageService;
 import com.myblog.stats.ViewRecorder;
@@ -99,7 +99,38 @@ public class PostController {
         m.put("next", n.get("next").orElse(null));
         m.put("otherPosts", queries.otherPosts(p));
         m.put("isAuthor", viewer != null && viewer == p.authorId());
+        m.put("pinned", jdbc.sql("SELECT pinned_at IS NOT NULL FROM posts WHERE id = ?").param(p.id())
+                .query(Boolean.class).single());
         return m;
+    }
+
+    /** 대표글 고정·해제 (작성자만) */
+    @PutMapping("/api/posts/{id}/pin")
+    public Map<String, Object> pin(@PathVariable long id, @AuthenticationPrincipal Long me) {
+        return Map.of("pinned", commands.togglePin(id, me));
+    }
+
+    /** 블로그 첫 화면 위쪽 대표글 */
+    @GetMapping("/api/blogs/{blogId}/pinned")
+    public List<Map<String, Object>> pinned(@PathVariable long blogId, @AuthenticationPrincipal Long viewer) {
+        blogs.get(blogId);
+        return queries.pinned(blogId, viewer);
+    }
+
+    public record BulkRequest(List<Long> postIds, Long categoryId) {}
+
+    /** 다이어리 편집: 고른 글을 다른 다이어리로 옮긴다 */
+    @PostMapping("/api/blogs/{blogId}/posts/move")
+    public Map<String, Object> movePosts(@PathVariable long blogId, @AuthenticationPrincipal Long me,
+                                         @RequestBody BulkRequest req) {
+        return Map.of("moved", commands.movePosts(blogId, me, req.postIds(), req.categoryId()));
+    }
+
+    /** 다이어리 편집: 고른 글을 한꺼번에 지운다 */
+    @PostMapping("/api/blogs/{blogId}/posts/delete")
+    public Map<String, Object> deletePosts(@PathVariable long blogId, @AuthenticationPrincipal Long me,
+                                           @RequestBody BulkRequest req) {
+        return Map.of("deleted", commands.deletePosts(blogId, me, req.postIds()));
     }
 
     @GetMapping("/api/posts/{id}/edit")

@@ -46,6 +46,12 @@ public final class Messages {
     public static final String DRAFT_EMPTY = "제목이나 본문을 입력하면 임시저장할 수 있습니다";
     public static final String DRAFT_NOT_FOUND = "존재하지 않는 임시저장 글입니다";
 
+    public static String pinLimit(int max) {
+        return "대표글은 " + max + "개까지 고정할 수 있습니다. 다른 글의 고정을 먼저 풀어 주세요";
+    }
+
+    public static final String POSTS_REQUIRED = "글을 골라 주세요";
+
     public static String draftLimit(int max) {
         return "임시저장은 " + max + "개까지 할 수 있습니다. 쓰지 않는 임시저장 글을 지워 주세요";
     }

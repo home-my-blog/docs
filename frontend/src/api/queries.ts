@@ -15,6 +15,7 @@ export const qk = {
   blogPosts: (id: string | number, categoryId: string | null, page: number, tag = '', sort = 'latest') =>
     ['blog', String(id), 'posts', categoryId ?? 'all', page, tag, sort] as const,
   blogTags: (id: string | number) => ['blog', String(id), 'tags'] as const,
+  pinned: (id: string | number) => ['blog', String(id), 'pinned'] as const,
   post: (id: string | number) => ['post', String(id)] as const,
   postEdit: (id: string | number) => ['post', String(id), 'edit'] as const,
   comments: (id: string | number) => ['post', String(id), 'comments'] as const,

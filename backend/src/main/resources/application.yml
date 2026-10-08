@@ -88,6 +88,7 @@ myblog:
     excerpt-length: 100
     page-size: 10
     other-posts: 3
+    pin-limit: 3   # 블로그 대표글 최대 개수
   comment:
     body-max: 500
     cooldown: 5s
