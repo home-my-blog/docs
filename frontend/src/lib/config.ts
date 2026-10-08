@@ -22,6 +22,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     postTitleMax: 100,
     postBodyMax: 10000,
     categoryNameMax: 20,
+    categoryDescriptionMax: 100,
     commentMax: 500,
     tagsPerPost: 5,
     tagMax: 15,

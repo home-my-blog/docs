@@ -122,7 +122,7 @@ class PostFlowIT extends IntegrationTest {
                 .andExpect(jsonPath("$.error.code").value("CATEGORY_HAS_POSTS"))
                 .andExpect(jsonPath("$.error.postCount").value(2))
                 .andExpect(jsonPath("$.error.message")
-                        .value("이 분류에 글이 2개 있어 삭제할 수 없습니다. 글을 다른 분류로 옮긴 뒤 삭제해 주세요"));
+                        .value("이 다이어리에 글이 2개 있어 삭제할 수 없습니다. 글을 다른 다이어리로 옮긴 뒤 삭제해 주세요"));
         mvc.perform(delete("/api/categories/" + def).with(csrf()).session(s))
                 .andExpect(jsonPath("$.error.code").value("DEFAULT_CATEGORY"));
         mvc.perform(jsonRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders

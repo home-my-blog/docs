@@ -69,9 +69,9 @@ export function PostsPage() {
           </select>
         </label>
         <label className="filters__item">
-          <span className="sr-only">분류</span>
+          <span className="sr-only">다이어리</span>
           <select className="input select" value={categoryId ?? ''} onChange={(e) => update('category', e.target.value || null)}>
-            <option value="">모든 분류</option>
+            <option value="">모든 다이어리</option>
             {(cats.data ?? []).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -104,7 +104,7 @@ export function PostsPage() {
             <thead>
               <tr>
                 <th>제목</th>
-                <th>분류</th>
+                <th>다이어리</th>
                 <th>작성일</th>
                 <th>공개</th>
                 <th className="num">조회</th>
@@ -120,7 +120,7 @@ export function PostsPage() {
                   <td data-label="제목" className="rtable__title">
                     <Link to={`/posts/${p.id}`}>{p.title}</Link>
                   </td>
-                  <td data-label="분류">{p.category.name}</td>
+                  <td data-label="다이어리">{p.category.name}</td>
                   <td data-label="작성일">{formatDate(p.createdAt)}</td>
                   <td data-label="공개">
                     {p.visibility === 'PRIVATE' ? <span className="badge badge--muted">{POST.privateBadge}</span> : '공개'}

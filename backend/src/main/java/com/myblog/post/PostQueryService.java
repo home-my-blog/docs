@@ -22,21 +22,34 @@ import org.springframework.stereotype.Service;
  * - VISIBLE_TO: 글 상세, 내 블로그 목록 (공개 글 또는 내가 쓴 글)
  * 둘 다 탈퇴 신청한 회원의 글은 뺀다(보관 기간에는 아무에게도 보이지 않는다). 탈퇴 회원은 적어서
  * members의 부분 인덱스(deleted_at)로 그 목록을 바로 찾는다.
+ * 비공개 다이어리(categories.visibility = 'PRIVATE')의 글은 글이 공개여도 주인만 본다.
  */
 @Service
 public class PostQueryService {
     public static final String ACTIVE_AUTHOR =
             "p.author_id NOT IN (SELECT wm.id FROM members wm WHERE wm.deleted_at IS NOT NULL)";
-    static final String PUBLIC_ONLY = "p.visibility = 'PUBLIC' AND " + ACTIVE_AUTHOR;
-    static final String VISIBLE_TO = "(p.visibility = 'PUBLIC' OR p.author_id = :viewer) AND " + ACTIVE_AUTHOR;
+    static final String OPEN_CATEGORY =
+            "p.category_id NOT IN (SELECT pc.id FROM categories pc WHERE pc.visibility = 'PRIVATE')";
+    /** 누구나 볼 수 있는 글. 다른 클래스에서도 posts 별칭 p에 붙여 쓴다. */
+    public static final String PUBLIC_ONLY = "p.visibility = 'PUBLIC' AND " + OPEN_CATEGORY + " AND " + ACTIVE_AUTHOR;
+    static final String VISIBLE_TO = "((p.visibility = 'PUBLIC' AND " + OPEN_CATEGORY + ") OR p.author_id = :viewer) AND "
+            + ACTIVE_AUTHOR;
+    /** 인기 점수: 조회 ×1 + 좋아요 ×5 + 댓글 단 사람 ×3 (글쓴이 본인 것은 빼고, 한 사람 댓글 여러 개는 한 명) */
+    static final String POPULARITY = """
+            (p.view_count
+             + 5 * (SELECT count(*) FROM post_likes l WHERE l.post_id = p.id AND l.member_id <> p.author_id)
+             + 3 * (SELECT count(DISTINCT cm.author_id) FROM comments cm
+                    WHERE cm.post_id = p.id AND cm.author_id <> p.author_id))""";
 
     public record PostRow(long id, long blogId, String blogName, long authorId, long categoryId, String categoryName,
+                          int categoryColorIndex,
                           String topicCode, String topicName, String title, String body, String visibility,
                           String coverKey, OffsetDateTime createdAt, OffsetDateTime contentUpdatedAt,
                           long viewCount) {}
 
     private static final String SELECT = """
             SELECT p.id, p.blog_id, b.name AS blog_name, p.author_id, p.category_id, c.name AS category_name,
+                   c.color_index AS category_color_index,
                    t.code AS topic_code, t.name AS topic_name, p.title, p.body, p.visibility,
                    pi.storage_key AS cover_key, p.created_at, p.content_updated_at, p.view_count
             FROM posts p
@@ -81,7 +94,7 @@ public class PostQueryService {
         m.put("id", p.id());
         m.put("blog", Map.of("id", p.blogId(), "name", p.blogName()));
         m.put("topic", Map.of("code", p.topicCode(), "name", p.topicName()));
-        m.put("category", Map.of("id", p.categoryId(), "name", p.categoryName()));
+        m.put("category", Map.of("id", p.categoryId(), "name", p.categoryName(), "colorIndex", p.categoryColorIndex()));
         m.put("title", p.title());
         m.put("excerpt", ExcerptMaker.excerpt(p.body(), props.post().excerptLength()));
         m.put("createdAt", p.createdAt());
@@ -92,6 +105,11 @@ public class PostQueryService {
     }
 
     private PageResponse<Map<String, Object>> page(String where, Map<String, Object> params, Integer page) {
+        return page(where, params, page, ORDER);
+    }
+
+    private PageResponse<Map<String, Object>> page(String where, Map<String, Object> params, Integer page,
+                                                   String order) {
         int size = props.post().pageSize();
         long total = jdbc.sql("SELECT count(*) FROM posts p JOIN blogs b ON b.id = p.blog_id "
                         + "JOIN topics t ON t.id = b.topic_id JOIN categories c ON c.id = p.category_id WHERE " + where)
@@ -100,7 +118,7 @@ public class PostQueryService {
             Map<String, Object> all = new LinkedHashMap<>(params);
             all.put("limit", limit);
             all.put("offset", offset);
-            return jdbc.sql(SELECT + " WHERE " + where + ORDER + " LIMIT :limit OFFSET :offset")
+            return jdbc.sql(SELECT + " WHERE " + where + order + " LIMIT :limit OFFSET :offset")
                     .params(all).query(PostRow.class).list();
         }).map(this::summary);
     }
@@ -112,8 +130,12 @@ public class PostQueryService {
                 .query(PostRow.class).list().stream().map(this::summary).toList();
     }
 
-    /** 블로그 글 목록. 주인이 자기 블로그를 볼 때만 비공개 포함 (CF-10-6). */
-    public PageResponse<Map<String, Object>> blogPosts(long blogId, Long categoryId, Long viewer, Integer page) {
+    /**
+     * 블로그 글 목록. 주인이 자기 블로그를 볼 때만 비공개 글·비공개 다이어리 포함 (CF-10-6).
+     * 다이어리(categoryId)와 태그(tagKey)로 거를 수 있고, 최신순·인기순·오래된 순으로 정렬한다.
+     */
+    public PageResponse<Map<String, Object>> blogPosts(long blogId, Long categoryId, String tagKey, String sort,
+                                                       Long viewer, Integer page) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("blog", blogId);
         params.put("viewer", viewerParam(viewer));
@@ -122,7 +144,29 @@ public class PostQueryService {
             where += " AND p.category_id = :category";
             params.put("category", categoryId);
         }
-        return page(where, params, page);
+        if (tagKey != null && !tagKey.isBlank()) {
+            where += " AND p.id IN (SELECT pt.post_id FROM post_tags pt JOIN tags g ON g.id = pt.tag_id"
+                    + " WHERE g.name_key = :tag)";
+            params.put("tag", tagKey);
+        }
+        String order = switch (sort == null ? "" : sort) {
+            case "popular" -> " ORDER BY " + POPULARITY + " DESC, p.created_at DESC, p.id DESC";
+            case "oldest" -> " ORDER BY p.created_at, p.id";
+            default -> ORDER;
+        };
+        return page(where, params, page, order);
+    }
+
+    /** 블로그 왼쪽 태그 모음: 이 사람이 볼 수 있는 글에 많이 붙은 순 (데모 '블로그 태그 모음'). */
+    public List<Map<String, Object>> blogTags(long blogId, Long viewer, int limit) {
+        return jdbc.sql("""
+                SELECT g.name, count(*) AS cnt
+                FROM post_tags pt JOIN tags g ON g.id = pt.tag_id JOIN posts p ON p.id = pt.post_id
+                WHERE p.blog_id = :blog AND """ + VISIBLE_TO + """
+                GROUP BY g.id, g.name ORDER BY cnt DESC, g.name LIMIT :limit""")
+                .param("blog", blogId).param("viewer", viewerParam(viewer)).param("limit", limit)
+                .query((rs, i) -> Map.<String, Object>of("name", rs.getString("name"), "count", rs.getLong("cnt")))
+                .list();
     }
 
     public record Neighbor(long id, String title) {}

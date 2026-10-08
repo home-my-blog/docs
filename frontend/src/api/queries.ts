@@ -12,8 +12,9 @@ export const qk = {
   blog: (id: string | number) => ['blog', String(id)] as const,
   blogAbout: (id: string | number) => ['blog', String(id), 'about'] as const,
   categories: (id: string | number) => ['blog', String(id), 'categories'] as const,
-  blogPosts: (id: string | number, categoryId: string | null, page: number) =>
-    ['blog', String(id), 'posts', categoryId ?? 'all', page] as const,
+  blogPosts: (id: string | number, categoryId: string | null, page: number, tag = '', sort = 'latest') =>
+    ['blog', String(id), 'posts', categoryId ?? 'all', page, tag, sort] as const,
+  blogTags: (id: string | number) => ['blog', String(id), 'tags'] as const,
   post: (id: string | number) => ['post', String(id)] as const,
   postEdit: (id: string | number) => ['post', String(id), 'edit'] as const,
   comments: (id: string | number) => ['post', String(id), 'comments'] as const,

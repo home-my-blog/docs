@@ -68,14 +68,14 @@ public class TrendingService {
         recentViews.forEach(v -> viewsByPost.merge(v.postId(), 1L, Long::sum));
         Map<Long, String> titles = new HashMap<>();
         if (!viewsByPost.isEmpty()) {
-            jdbc.sql("SELECT p.id, lower(p.title) AS t FROM posts p WHERE p.visibility = 'PUBLIC' AND "
-                            + PostQueryService.ACTIVE_AUTHOR + " AND p.id IN (:ids)")
+            jdbc.sql("SELECT p.id, lower(p.title) AS t FROM posts p WHERE " + PostQueryService.PUBLIC_ONLY
+                            + " AND p.id IN (:ids)")
                     .param("ids", viewsByPost.keySet())
                     .query((rs, i) -> titles.put(rs.getLong("id"), rs.getString("t"))).list();
         }
         List<String[]> commented = jdbc.sql("""
                 SELECT lower(p.title) AS t FROM comments cm JOIN posts p ON p.id = cm.post_id
-                WHERE cm.created_at >= ? AND p.visibility = 'PUBLIC' AND """ + PostQueryService.ACTIVE_AUTHOR)
+                WHERE cm.created_at >= ? AND """ + PostQueryService.PUBLIC_ONLY)
                 .param(sinceOffset)
                 .query((rs, i) -> new String[] {rs.getString("t")}).list();
 

@@ -4,6 +4,8 @@ import type {
   BlogAbout,
   BlogDetail,
   BlogPostListItem,
+  BlogPostSort,
+  BlogTag,
   Category,
   Comment,
   DashboardResponse,
@@ -14,8 +16,8 @@ import type {
   LikeResponse,
   ManageCommentItem,
   ManagePostItem,
-  Member,
   MeResponse,
+  Member,
   MyProfile,
   Page,
   PostDetail,
@@ -86,14 +88,28 @@ export const createCategory = (blogId: number, name: string) =>
   api<Category>(`/api/blogs/${blogId}/categories`, { method: 'POST', body: { name } });
 export const renameCategory = (id: number, name: string) =>
   api<void>(`/api/categories/${id}`, { method: 'PATCH', body: { name } });
+/** 다이어리 설정: 보낸 칸만 바뀐다 */
+export const updateCategory = (
+  id: number,
+  body: { name?: string; description?: string; colorIndex?: number; visibility?: Visibility },
+) => api<void>(`/api/categories/${id}`, { method: 'PATCH', body });
+export const getBlogTags = (blogId: string | number) => api<BlogTag[]>(`/api/blogs/${blogId}/tags`);
 export const moveCategory = (id: number, direction: 'up' | 'down') =>
   api<void>(`/api/categories/${id}/move`, { method: 'POST', body: { direction } });
 export const deleteCategory = (id: number) => api<void>(`/api/categories/${id}`, { method: 'DELETE' });
 
 /* 글 */
-export const getBlogPosts = (blogId: string | number, params: { categoryId?: string | null; page?: number }) =>
+export const getBlogPosts = (
+  blogId: string | number,
+  params: { categoryId?: string | null; tag?: string | null; sort?: BlogPostSort; page?: number },
+) =>
   api<Page<BlogPostListItem>>(`/api/blogs/${blogId}/posts`, {
-    query: { categoryId: params.categoryId, page: params.page },
+    query: {
+      categoryId: params.categoryId,
+      tag: params.tag || undefined,
+      sort: params.sort && params.sort !== 'latest' ? params.sort : undefined,
+      page: params.page,
+    },
   });
 export const getPost = (id: string | number) => api<PostDetail>(`/api/posts/${id}`);
 export const getPostForEdit = (id: string | number) => api<PostEditSource>(`/api/posts/${id}/edit`);

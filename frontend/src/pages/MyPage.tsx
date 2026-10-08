@@ -283,7 +283,7 @@ function MyPageForms({ profile }: { profile: MyProfile }) {
             </strong>
           </p>
           <p>
-            {limits.withdrawKeepDays}일이 지나면 삭제되는 것: 내 블로그, 글, 분류, 내 블로그 글에 달린 댓글, 내가 누른 좋아요,
+            {limits.withdrawKeepDays}일이 지나면 삭제되는 것: 내 블로그, 글, 다이어리, 내 블로그 글에 달린 댓글, 내가 누른 좋아요,
             이메일·닉네임 등 개인정보
           </p>
           <p>남는 것: 다른 사람 글에 단 댓글 (작성자는 “탈퇴한 사용자”로 표시)</p>

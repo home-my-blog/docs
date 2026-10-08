@@ -64,15 +64,15 @@ export const POST = {
   deleteConfirm: '삭제하면 되돌릴 수 없습니다. 삭제할까요?',
   toPublicConfirm: '공개로 바꾸면 누구나 볼 수 있습니다',
   notFound: '존재하지 않는 글입니다',
-  categoryNameTaken: '이미 있는 분류입니다',
+  categoryNameTaken: '이미 있는 다이어리입니다',
   categoryHasPosts: (n: number) =>
-    `이 분류에 글이 ${n}개 있어 삭제할 수 없습니다. 글을 다른 분류로 옮긴 뒤 삭제해 주세요`,
+    `이 다이어리에 글이 ${n}개 있어 삭제할 수 없습니다. 글을 다른 다이어리로 옮긴 뒤 삭제해 주세요`,
   // [추가]
   titleTooLong: (max: number) => `제목은 ${max}자 이하로 입력해 주세요`,
   bodyTooLong: (max: number) => `본문은 ${max.toLocaleString()}자 이하로 입력해 주세요`,
-  categoryRequired: '분류를 골라 주세요',
+  categoryRequired: '다이어리를 골라 주세요',
   defaultCategory: '"미분류"는 삭제할 수 없습니다',
-  categoryDeleteConfirm: '분류를 삭제할까요?',
+  categoryDeleteConfirm: '다이어리를 삭제할까요?',
   tagLimit: (max: number) => `태그는 ${max}개까지 붙일 수 있습니다`,
   tagRule: (max: number) => `태그는 공백과 쉼표 없이 1~${max}자로 입력해 주세요`,
   tagDuplicate: '이미 붙인 태그입니다',
@@ -116,14 +116,27 @@ export const MANAGE = {
   noFilteredPosts: '글이 없습니다',
   noComments: '아직 달린 댓글이 없습니다',
   blogNameRequired: '블로그 이름을 입력해 주세요',
-  categoryNameRequired: '분류 이름을 입력해 주세요',
+  categoryNameRequired: '다이어리 이름을 입력해 주세요',
   // BM-04-4 (화면 아래 상시 안내)
   categoryNotice:
-    '글이 하나라도 있는 분류는 삭제할 수 없습니다. 글은 글 수정에서 다른 분류로 옮길 수 있습니다.',
+    '글이 하나라도 있는 다이어리는 삭제할 수 없습니다. 글은 글 수정에서 다른 다이어리로 옮길 수 있습니다.',
   // [추가]
   blogNameTooLong: (max: number) => `블로그 이름은 ${max}자 이하로 입력해 주세요`,
-  categoryNameTooLong: (max: number) => `분류 이름은 ${max}자 이하로 입력해 주세요`,
+  categoryNameTooLong: (max: number) => `다이어리 이름은 ${max}자 이하로 입력해 주세요`,
   noData: '아직 기록이 없습니다',
+} as const;
+
+/** 다이어리 (데모의 다이어리 컨셉: 분류 = 다이어리) */
+export const CATEGORY = {
+  nameRequired: '다이어리 이름을 입력해 주세요',
+  nameTooLong: (max: number) => `다이어리 이름은 ${max}자 이하로 입력해 주세요`,
+  descriptionTooLong: (max: number) => `다이어리 소개는 ${max}자 이하로 입력해 주세요`,
+  toPrivateConfirm: '비공개로 바꾸면 이 다이어리의 글은 나만 볼 수 있습니다. 바꿀까요?',
+  saved: '다이어리 설정을 저장했습니다',
+  privateNote: '나만 볼 수 있는 다이어리입니다',
+  tagFilterClear: '✕ 태그 거르기 해제',
+  emptyTag: '이 태그가 붙은 글이 없습니다',
+  writeHere: '이 다이어리에 쓰기',
 } as const;
 
 /** 요구사항.md 3.3~3.5 및 공통 */

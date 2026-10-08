@@ -31,6 +31,7 @@ public class ConfigController {
         limits.put("postTitleMax", props.post().titleMax());
         limits.put("postBodyMax", props.post().bodyMax());
         limits.put("categoryNameMax", props.blog().categoryNameMax());
+        limits.put("categoryDescriptionMax", props.blog().categoryDescriptionMax());
         limits.put("commentMax", props.comment().bodyMax());
         limits.put("tagsPerPost", props.tag().maxPerPost());
         limits.put("tagMax", props.tag().maxLength());

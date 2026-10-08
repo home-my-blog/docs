@@ -127,84 +127,405 @@
   }
 }
 
-/* ---------- 블로그 ---------- */
-.blog__head {
+/* ---------- 블로그 (데모: 다이어리 책장) ---------- */
+.blog-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--gap-4);
   padding: 0 0 28px;
   margin-bottom: var(--gap-6);
   border-bottom: 1px solid var(--line);
 }
-.blog__name {
+.blog-head__text {
+  flex: 1;
+  min-width: 0;
+}
+.blog-head__name {
   font-size: clamp(1.8rem, 4vw, 2.4rem);
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
 }
-.blog__desc {
+.blog-head__intro {
   margin-top: 10px;
   color: var(--text-sub);
+  overflow-wrap: anywhere;
 }
-.blog__owner-actions {
+.blog-head__intro.muted {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.blog-head__intro a,
+.blog-head__meta a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.blog-head__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+.blog-head__meta a.is-current {
+  color: var(--text);
+  font-weight: 700;
+}
+.blog-head__actions {
   display: flex;
   gap: var(--gap-2);
-  margin-top: var(--gap-3);
+}
+.avatar--xs {
+  width: 22px;
+  height: 22px;
+  font-size: 0.7rem;
+}
+
+/* 다이어리 표지 (책 모양) */
+.cover {
+  flex-shrink: 0;
+  position: relative;
+  width: 44px;
+  height: 58px;
+  border-radius: 2px 5px 5px 2px;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.12) 0 3px, rgba(255, 255, 255, 0.45) 3px 5px, transparent 5px),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.04)),
+    var(--c, var(--text-faint));
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(17, 19, 24, 0.1),
+    0 4px 10px rgba(17, 19, 24, 0.08);
+}
+.cover::before,
+.cover::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.7);
+}
+.cover::before {
+  top: 8px;
+}
+.cover::after {
+  bottom: 8px;
+}
+.cover--md {
+  width: 52px;
+  height: 70px;
+}
+.cover--lg {
+  width: 56px;
+  height: 74px;
+}
+.cover--sm {
+  width: 20px;
+  height: 27px;
+}
+.cover__lock {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-sub);
+}
+.cover--add {
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1.5px dashed var(--line-strong);
+  box-shadow: none;
+  color: var(--text-faint);
+  font-size: 1.3rem;
+}
+.cover--add::before,
+.cover--add::after {
+  display: none;
+}
+.lock-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+/* 다이어리 책장 */
+.bookshelf {
+  margin-top: 22px;
+  max-width: 100%;
+}
+.bookshelf__books {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 8px 6px 0;
+  scrollbar-width: thin;
+}
+.book {
+  flex-shrink: 0;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.book .cover {
+  transition: transform 0.15s ease;
+}
+.book:hover .cover {
+  transform: translateY(-4px);
+}
+.book.is-on .cover {
+  transform: translateY(-8px);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 6px 14px rgba(17, 19, 24, 0.16);
+}
+.book__name {
+  width: 100%;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.book.is-on .book__name {
+  color: var(--text);
+}
+.book--add .book__name {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.book__count {
+  margin-top: -4px;
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+.bookshelf__board {
+  height: 6px;
+  margin-top: 2px;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+/* 왼쪽 다이어리 목록 · 태그 모음 */
+.with-side {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+}
+.side {
+  position: sticky;
+  top: calc(var(--header-h) + 20px);
+}
+.side__title {
+  margin-bottom: 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.diary-list {
+  display: flex;
+  flex-direction: column;
+}
+.diary-list a {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-left: -10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  color: var(--text-sub);
+}
+.diary-list a:hover {
+  background: var(--surface-2);
+}
+.diary-list a.is-current {
+  color: var(--text);
+  font-weight: 700;
+  background: var(--surface-2);
+}
+.diary-list__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.diary-list__count {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  font-weight: 400;
+}
+.side__add {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+.side__add:hover {
+  color: var(--text);
+}
+.side__tags {
+  margin-top: 28px;
+}
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag-cloud .tag.is-on {
+  background: var(--text);
+  color: var(--surface);
+}
+.tag-cloud__count {
+  color: var(--text-faint);
+  font-size: 0.72rem;
 }
 .blog__main {
   min-width: 0;
 }
-.profile {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--gap-3);
-  align-items: start;
-}
-.profile__name {
-  font-weight: 700;
-}
-.profile__bio {
-  font-size: var(--fs-sm);
-  color: var(--text-sub);
-  margin: 2px 0 6px;
-}
-.profile__about {
-  grid-column: 1 / -1;
-  font-size: 0.84rem;
-  color: var(--text-muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.profile__about.is-current {
-  color: var(--text);
-  font-weight: 700;
-}
-.catlist__title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-.catlist a {
+
+/* 다이어리 머리 */
+.diary-head {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
-  font-size: 0.92rem;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 4px 0 20px;
+  margin-bottom: var(--gap-5);
+  border-bottom: 1px solid var(--line);
+}
+.diary-head__info {
+  flex: 1;
+  min-width: 0;
+}
+.diary-head__info h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.diary-head__info p {
+  margin-top: 4px;
   color: var(--text-sub);
-  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
 }
-.catlist a:hover {
-  background: var(--surface-2);
+.diary-head__info .muted {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
 }
-.catlist a.is-current {
-  color: var(--text);
-  font-weight: 700;
-  background: var(--surface-2);
+.diary-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
-.catlist__count {
+
+/* 정렬 탭 · 태그 거르기 */
+.seg-tabs {
+  display: inline-flex;
+  gap: 2px;
   margin-left: auto;
-  padding-left: 8px;
-  color: var(--text-faint);
-  font-size: 0.78rem;
-  font-weight: 400;
+  align-self: center;
+  padding: 3px;
+  border-radius: 7px;
+  background: var(--surface-2);
 }
+.seg-tabs button {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.seg-tabs button.is-on {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(17, 19, 24, 0.08);
+}
+.tag-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 0.9rem;
+}
+.tag-filter .link-btn {
+  margin-left: auto;
+}
+
+/* 다이어리 설정 창 */
+.diary-settings__preview {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.swatch.is-selected {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.swatch:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 860px) {
+  .with-side {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--gap-5);
+  }
+  .side {
+    position: static;
+  }
+  .diary-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .diary-list a {
+    margin-left: 0;
+  }
+}
+
 .list-head {
   display: flex;
   align-items: baseline;
@@ -1035,4 +1356,15 @@ ol.rank-list li a {
 }
 .draft-list__open time {
   font-size: 0.78rem;
+}
+.diary-settings .radio {
+  align-items: flex-start;
+}
+.radio__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.radio__text small {
+  font-size: 0.8rem;
 }
