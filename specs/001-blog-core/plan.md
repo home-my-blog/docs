@@ -1,5 +1,9 @@
 # Implementation Plan: MyBlog 1차 개발 범위
 
+> **구현 메모 (2026-10-08)**: 수연님 결정으로 커뮤니티와 `spring_session` 표를 뺐다. 세션은 서버 메모리 +
+> Spring Security `SessionRegistry`(회원별 세션 끊기), DB 접근은 JPA 대신 `JdbcClient`(SQL을 그대로 보이게,
+> 헌법 III)로 구현했다. 테스트는 Testcontainers 대신 로컬·CI의 PostgreSQL 16과 Redis 7에 붙는다(`application-test.yml`).
+
 **Branch**: `001-blog-core` | **Date**: 2026-10-08 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/001-blog-core/spec.md`

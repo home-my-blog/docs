@@ -1,5 +1,7 @@
 # Research: MyBlog 1차 개발 범위
 
+> **변경 (2026-10-08)**: §2의 Spring Session JDBC 대신 서버 메모리 세션 + `SessionRegistry`를 쓴다(세션 표를 뺐다). §7, §8, §11의 커뮤니티 부분은 커뮤니티를 빼면서 해당 없음.
+
 기술 선택의 대부분은 [기술스택-아키텍처.md](../../docs/기술스택-아키텍처.md)에서 이미 정했다(React,
 Spring Boot, PostgreSQL, Redis, MinIO, SMTP, Flyway, Docker Compose, 세션 방식, BCrypt). 여기에는
 그 문서가 **미정·가안으로 남긴 것**과 **구현에 필요한 세부 결정**만 적는다.

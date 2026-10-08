@@ -1,0 +1,49 @@
+import type { AppConfig, Topic } from '../api/types';
+
+/** 서버 /api/config 가 없거나 칸이 빠졌을 때 쓰는 기본값 (원본 각 파일의 '기본값' 표). */
+export const DEFAULT_TOPICS: Topic[] = [
+  { code: 'travel', name: '여행', description: '' },
+  { code: 'food', name: '음식', description: '' },
+  { code: 'hobby', name: '취미', description: '' },
+  { code: 'exercise', name: '운동', description: '' },
+  { code: 'dev', name: '개발', description: '' },
+];
+
+export const DEFAULT_CONFIG: AppConfig = {
+  limits: {
+    nicknameMin: 2,
+    nicknameMax: 10,
+    passwordMin: 8,
+    passwordMax: 10,
+    bioMax: 100,
+    blogNameMax: 30,
+    blogDescriptionMax: 200,
+    blogAboutMax: 5000,
+    postTitleMax: 100,
+    postBodyMax: 10000,
+    categoryNameMax: 20,
+    commentMax: 500,
+    tagsPerPost: 5,
+    tagMax: 15,
+    reportDetailMax: 200,
+    imageMaxBytes: 5 * 1024 * 1024,
+    imagesPerPost: 10,
+    searchMin: 2,
+    searchMax: 50,
+  },
+  pageSize: 10,
+  trendingIntervalSeconds: 5,
+  topics: DEFAULT_TOPICS,
+};
+
+export function mergeConfig(server: Partial<AppConfig> | null | undefined): AppConfig {
+  if (!server) return DEFAULT_CONFIG;
+  return {
+    ...DEFAULT_CONFIG,
+    ...server,
+    limits: { ...DEFAULT_CONFIG.limits, ...(server.limits ?? {}) },
+    topics: server.topics && server.topics.length > 0 ? server.topics : DEFAULT_CONFIG.topics,
+  };
+}
+
+export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];

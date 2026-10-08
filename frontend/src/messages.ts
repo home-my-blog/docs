@@ -1,0 +1,160 @@
+/**
+ * 화면 문구 (FR-040). 원본 docs/상세/*.md 의 '안내 문구' 표를 그대로 옮겼다.
+ * 표에 없는 문구는 같은 말투("~합니다 / ~해 주세요")로 새로 썼고 [추가] 표시를 달았다.
+ */
+
+/** 01-인증-인가 '안내 문구' */
+export const AUTH = {
+  emailInvalid: '이메일 형식이 올바르지 않습니다',
+  emailTaken: '이미 가입된 이메일입니다',
+  nicknameRule: '닉네임은 한글, 영문, 숫자로 2~10자여야 합니다',
+  nicknameTaken: '이미 사용 중인 닉네임입니다',
+  passwordRule: '비밀번호는 영문, 숫자, 특수문자를 포함해 8~10자로 입력해 주세요',
+  passwordMismatch: '비밀번호가 일치하지 않습니다',
+  codeSent: '인증번호를 보냈습니다. 10분 안에 입력해 주세요',
+  codeMismatch: '인증번호가 올바르지 않습니다',
+  codeExpired: '인증번호가 만료되었습니다. 인증번호를 다시 받아 주세요',
+  codeAttemptsExceeded: '인증번호 입력 횟수를 초과했습니다. 인증번호를 다시 받아 주세요',
+  resendTooSoon: '잠시 뒤에 다시 요청해 주세요',
+  dailyLimit: '오늘은 더 이상 인증번호를 보낼 수 없습니다',
+  verified: '이메일 인증이 완료되었습니다',
+  notVerified: '이메일 인증을 먼저 완료해 주세요',
+  verificationExpired: '인증 유효 시간이 지났습니다. 이메일 인증을 다시 해 주세요',
+  signupDone: '가입이 완료되었습니다. 로그인해 주세요',
+  mailSendFailed: '메일을 보내지 못했습니다. 잠시 뒤 다시 시도해 주세요',
+  loginFailed: '이메일 또는 비밀번호가 올바르지 않습니다',
+  accountLocked: (minutes: number) =>
+    `로그인 시도가 5회 실패해 잠겼습니다. ${minutes}분 뒤에 다시 시도해 주세요`,
+  resetSent: '입력하신 이메일로 안내를 보냈습니다. 10분 안에 인증번호를 입력해 주세요',
+  resetDone: '비밀번호를 변경했습니다. 새 비밀번호로 로그인해 주세요',
+  // [추가]
+  required: '필수 입력 항목입니다',
+  codeRequired: '인증번호를 입력해 주세요',
+  forgotPassword: '비밀번호를 잊으셨나요?',
+  loginRequired: '로그인이 필요합니다',
+  resetWhileLoggedIn: '로그인한 상태에서는 마이페이지에서 비밀번호를 변경해 주세요',
+} as const;
+
+/** 02-계정관리 '안내 문구' */
+export const ACCOUNT = {
+  saved: '저장했습니다',
+  currentPasswordMismatch: '현재 비밀번호가 올바르지 않습니다',
+  sameAsCurrent: '현재 비밀번호와 다른 값을 입력해 주세요',
+  passwordChanged: '비밀번호를 변경했습니다',
+  withdrawConfirm: '정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다',
+  withdrawn: '탈퇴가 완료되었습니다',
+  // [추가]
+  bioTooLong: (max: number) => `소개는 ${max}자 이하로 입력해 주세요`,
+  acknowledgeRequired: '안내를 확인했다는 항목에 체크해 주세요',
+} as const;
+
+/** 03-코어-블로그-글 '안내 문구' */
+export const POST = {
+  titleRequired: '제목을 입력해 주세요',
+  bodyRequired: '본문을 입력해 주세요',
+  leaveConfirm: '저장하지 않은 내용이 있습니다. 나갈까요?',
+  deleteConfirm: '삭제하면 되돌릴 수 없습니다. 삭제할까요?',
+  toPublicConfirm: '공개로 바꾸면 누구나 볼 수 있습니다',
+  notFound: '존재하지 않는 글입니다',
+  categoryNameTaken: '이미 있는 분류입니다',
+  categoryHasPosts: (n: number) =>
+    `이 분류에 글이 ${n}개 있어 삭제할 수 없습니다. 글을 다른 분류로 옮긴 뒤 삭제해 주세요`,
+  // [추가]
+  titleTooLong: (max: number) => `제목은 ${max}자 이하로 입력해 주세요`,
+  bodyTooLong: (max: number) => `본문은 ${max.toLocaleString()}자 이하로 입력해 주세요`,
+  categoryRequired: '분류를 골라 주세요',
+  defaultCategory: '"미분류"는 삭제할 수 없습니다',
+  categoryDeleteConfirm: '분류를 삭제할까요?',
+  tagLimit: (max: number) => `태그는 ${max}개까지 붙일 수 있습니다`,
+  tagRule: (max: number) => `태그는 공백과 쉼표 없이 1~${max}자로 입력해 주세요`,
+  tagDuplicate: '이미 붙인 태그입니다',
+  imageLimit: (max: number) => `이미지는 글 하나에 ${max}장까지 올릴 수 있습니다`,
+  privateBadge: '비공개',
+} as const;
+
+/** 04-탐색 '안내 문구' */
+export const EXPLORE = {
+  emptyList: '글이 없습니다',
+  searchTooShort: '검색어를 2자 이상 입력해 주세요',
+  searchNoResult: '검색 결과가 없습니다',
+  // [추가] CF-10-8
+  firstPost: '첫 글을 써 보세요',
+  searchEmpty: '검색어를 입력해 주세요',
+  searchTooLong: (max: number) => `검색어는 ${max}자 이하로 입력해 주세요`,
+  searchTotal: (n: number) => `검색 결과 ${n.toLocaleString()}건`,
+  postCount: (n: number) => `${n.toLocaleString()}개의 글`,
+} as const;
+
+/** 05-소통-부가 '안내 문구' */
+export const SOCIAL = {
+  commentLoginRequired: '로그인한 회원만 댓글을 쓸 수 있습니다',
+  commentDeleteConfirm: '댓글을 삭제할까요?',
+  imageRule: '이미지는 5MB 이하의 jpg, png, gif, webp만 올릴 수 있습니다',
+  alreadyReported: '이미 신고한 글입니다',
+  reported: '신고가 접수되었습니다',
+  // [추가]
+  withdrawnUser: '탈퇴한 사용자',
+  commentRequired: '댓글 내용을 입력해 주세요',
+  commentTooLong: (max: number) => `댓글은 ${max}자 이하로 입력해 주세요`,
+  ownPost: '자기 글에는 할 수 없습니다',
+  reportReasonRequired: '신고 사유를 골라 주세요',
+} as const;
+
+/** 06-블로그관리-통계 '안내 문구' */
+export const MANAGE = {
+  noPostsYet: '아직 쓴 글이 없습니다',
+  noFilteredPosts: '글이 없습니다',
+  noComments: '아직 달린 댓글이 없습니다',
+  blogNameRequired: '블로그 이름을 입력해 주세요',
+  categoryNameRequired: '분류 이름을 입력해 주세요',
+  // BM-04-4 (화면 아래 상시 안내)
+  categoryNotice:
+    '글이 하나라도 있는 분류는 삭제할 수 없습니다. 글은 글 수정에서 다른 분류로 옮길 수 있습니다.',
+  // [추가]
+  blogNameTooLong: (max: number) => `블로그 이름은 ${max}자 이하로 입력해 주세요`,
+  categoryNameTooLong: (max: number) => `분류 이름은 ${max}자 이하로 입력해 주세요`,
+  noData: '아직 기록이 없습니다',
+} as const;
+
+/** 요구사항.md 3.3~3.5 및 공통 */
+export const COMMON = {
+  notFound: (what: string) => `존재하지 않는 ${what}입니다`,
+  noBlogs: '블로그가 없습니다',
+  noPosts: '글이 없습니다',
+  loading: '불러오는 중입니다',
+  // [추가]
+  genericError: '요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요',
+  networkError: '서버에 연결할 수 없습니다. 잠시 뒤 다시 시도해 주세요',
+  forbidden: '볼 수 없는 화면입니다',
+  retry: '다시 시도',
+} as const;
+
+/** 서버 오류 코드 → 화면 문구. 서버가 message를 주면 그쪽을 우선한다. */
+export const ERROR_CODE_MESSAGES: Record<string, string> = {
+  EMAIL_TAKEN: AUTH.emailTaken,
+  NICKNAME_TAKEN: AUTH.nicknameTaken,
+  RESEND_TOO_SOON: AUTH.resendTooSoon,
+  DAILY_LIMIT: AUTH.dailyLimit,
+  MAIL_SEND_FAILED: AUTH.mailSendFailed,
+  SERVICE_UNAVAILABLE: AUTH.mailSendFailed,
+  CODE_MISMATCH: AUTH.codeMismatch,
+  CODE_EXPIRED: AUTH.codeExpired,
+  CODE_ATTEMPTS_EXCEEDED: AUTH.codeAttemptsExceeded,
+  NOT_VERIFIED: AUTH.notVerified,
+  VERIFICATION_EXPIRED: AUTH.verificationExpired,
+  LOGIN_FAILED: AUTH.loginFailed,
+  CURRENT_PASSWORD_MISMATCH: ACCOUNT.currentPasswordMismatch,
+  SAME_AS_CURRENT: ACCOUNT.sameAsCurrent,
+  ACKNOWLEDGE_REQUIRED: ACCOUNT.acknowledgeRequired,
+  POST_NOT_FOUND: POST.notFound,
+  BLOG_NOT_FOUND: COMMON.notFound('블로그'),
+  TOPIC_NOT_FOUND: COMMON.notFound('주제'),
+  CATEGORY_NAME_TAKEN: POST.categoryNameTaken,
+  DEFAULT_CATEGORY: POST.defaultCategory,
+  ALREADY_REPORTED: SOCIAL.alreadyReported,
+  OWN_POST: SOCIAL.ownPost,
+  INVALID_IMAGE: SOCIAL.imageRule,
+  QUERY_TOO_SHORT: EXPLORE.searchTooShort,
+  UNAUTHENTICATED: AUTH.loginRequired,
+  NETWORK_ERROR: COMMON.networkError,
+};

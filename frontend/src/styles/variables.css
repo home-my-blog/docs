@@ -1,0 +1,44 @@
+:root {
+  /* 색 */
+  --accent: #f25c2b;
+  --accent-strong: #d94a1c;
+  --accent-soft: #fff1ec;
+  --text: #1f1f1f;
+  --text-sub: #555;
+  --text-muted: #888;
+  --line: #e8e8e8;
+  --line-strong: #d4d4d4;
+  --bg: #fafafa;
+  --surface: #fff;
+  --surface-2: #f4f4f4;
+  --ok: #1e8e3e;
+  --ok-soft: #e8f5ec;
+  --danger: #d93025;
+  --danger-soft: #fdecea;
+  --info: #2b6cd9;
+  --up: #d93025;
+  --down: #2b6cd9;
+
+  /* 글자 */
+  --font: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 28px;
+
+  /* 간격·모양 */
+  --gap-1: 4px;
+  --gap-2: 8px;
+  --gap-3: 12px;
+  --gap-4: 16px;
+  --gap-5: 24px;
+  --gap-6: 32px;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
+  --container: 1080px;
+  --header-h: 56px;
+}
