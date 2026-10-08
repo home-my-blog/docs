@@ -146,6 +146,67 @@ public class PostCommandService {
         return p.blogId();
     }
 
+    /**
+     * 대표글 고정·해제 (작성자만). 블로그마다 최대 pin-limit개. 동시에 눌러도 넘지 않게 블로그 줄을 잠그고 센다.
+     * 고정됐으면 true.
+     */
+    @Transactional
+    public boolean togglePin(long postId, long memberId) {
+        var p = queries.requireAuthor(postId, memberId);
+        jdbc.sql("SELECT id FROM blogs WHERE id = ? FOR UPDATE").param(p.blogId()).query(Long.class).single();
+        boolean pinned = jdbc.sql("SELECT pinned_at IS NOT NULL FROM posts WHERE id = ?").param(postId)
+                .query(Boolean.class).single();
+        if (pinned) {
+            jdbc.sql("UPDATE posts SET pinned_at = NULL WHERE id = ?").param(postId).update();
+            return false;
+        }
+        int limit = props.post().pinLimit();
+        long count = jdbc.sql("SELECT count(*) FROM posts WHERE blog_id = ? AND pinned_at IS NOT NULL")
+                .param(p.blogId()).query(Long.class).single();
+        if (count >= limit) {
+            throw new ApiException(ErrorCode.PIN_LIMIT, Messages.pinLimit(limit), Map.of(), Map.of());
+        }
+        jdbc.sql("UPDATE posts SET pinned_at = ? WHERE id = ?").params(clock.nowOffset(), postId).update();
+        return true;
+    }
+
+    /** 다이어리 편집: 내 글들이 이 블로그 글인지 확인한다. 하나라도 아니면 없는 글과 같게 거절한다. */
+    private List<Long> requireOwnPosts(long blogId, long memberId, List<Long> postIds) {
+        blogs.requireOwner(blogId, memberId);
+        List<Long> ids = postIds == null ? List.of() : postIds.stream().distinct().toList();
+        if (ids.isEmpty()) {
+            throw ApiException.field("postIds", Messages.POSTS_REQUIRED);
+        }
+        long mine = jdbc.sql("SELECT count(*) FROM posts WHERE blog_id = :blog AND author_id = :me AND id IN (:ids)")
+                .param("blog", blogId).param("me", memberId).param("ids", ids).query(Long.class).single();
+        if (mine != ids.size()) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
+        }
+        return ids;
+    }
+
+    /** 다이어리 편집: 글 여러 개를 다른 다이어리로 한꺼번에 옮긴다. 수정 시각은 바꾸지 않는다. */
+    @Transactional
+    public int movePosts(long blogId, long memberId, List<Long> postIds, Long categoryId) {
+        List<Long> ids = requireOwnPosts(blogId, memberId, postIds);
+        if (categoryId == null || categories.get(categoryId).blogId() != blogId) {
+            throw ApiException.field("categoryId", Messages.CATEGORY_REQUIRED);
+        }
+        return jdbc.sql("UPDATE posts SET category_id = :cat WHERE id IN (:ids)")
+                .param("cat", categoryId).param("ids", ids).update();
+    }
+
+    /** 다이어리 편집: 글 여러 개를 한꺼번에 지운다. 댓글·좋아요·태그 연결은 FK로, 사진 파일은 커밋 뒤 지운다. */
+    @Transactional
+    public int deletePosts(long blogId, long memberId, List<Long> postIds) {
+        List<Long> ids = requireOwnPosts(blogId, memberId, postIds);
+        List<String> keys = jdbc.sql("SELECT storage_key FROM post_images WHERE post_id IN (:ids)").param("ids", ids)
+                .query(String.class).list();
+        int n = jdbc.sql("DELETE FROM posts WHERE id IN (:ids)").param("ids", ids).update();
+        images.deleteFilesAfterCommit(keys);
+        return n;
+    }
+
     /** 글쓰기 기본 분류: 마지막으로 쓴 글의 분류, 처음이면 "미분류" (CF-05-5). */
     public Map<String, Long> lastCategory(long memberId) {
         long blogId = blogs.requireOwnBlogId(memberId);

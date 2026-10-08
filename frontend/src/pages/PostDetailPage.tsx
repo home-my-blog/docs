@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { errorMessage, isNotFound } from '../api/client';
-import { deletePost, getPost } from '../api/endpoints';
+import { deletePost, getPost, togglePin } from '../api/endpoints';
 import { qk } from '../api/queries';
+import type { PostDetail } from '../api/types';
 import { useRequireLogin } from '../api/useRequireLogin';
 import { CommentSection } from '../components/CommentSection';
 import { LikeButton } from '../components/LikeButton';
@@ -15,7 +16,7 @@ import { TagList } from '../components/TagList';
 import { useToast } from '../components/toastContext';
 import { useHighlightTopic } from '../components/topicHighlight';
 import { categoryColor, formatDate, formatDateTime } from '../lib/format';
-import { POST } from '../messages';
+import { CATEGORY, POST } from '../messages';
 
 /** 글 상세 (3.5, CF-09, CF-18~21) */
 export function PostDetailPage() {
@@ -41,6 +42,17 @@ export function PostDetailPage() {
       void queryClient.invalidateQueries({ queryKey: ['blog'] });
       void queryClient.invalidateQueries({ queryKey: ['manage'] });
       navigate(blogId ? `/blogs/${blogId}` : '/', { replace: true });
+    },
+    onError: (e) => toast.show(errorMessage(e), 'error'),
+  });
+
+  // 대표글 고정·해제 (작성자만, 블로그마다 최대 3개)
+  const pin = useMutation({
+    mutationFn: (id: number) => togglePin(id),
+    onSuccess: ({ pinned }) => {
+      queryClient.setQueryData<PostDetail>(qk.post(postId), (old) => (old ? { ...old, pinned } : old));
+      if (post) void queryClient.invalidateQueries({ queryKey: qk.pinned(post.blog.id) });
+      toast.show(pinned ? CATEGORY.pinned : CATEGORY.unpinned);
     },
     onError: (e) => toast.show(errorMessage(e), 'error'),
   });
@@ -91,6 +103,15 @@ export function PostDetailPage() {
         </p>
         {post.isAuthor && (
           <div className="post__author-actions">
+            <button
+              type="button"
+              className={`btn btn--sm btn--ghost pin-btn${post.pinned ? ' is-on' : ''}`}
+              aria-pressed={!!post.pinned}
+              disabled={pin.isPending}
+              onClick={() => pin.mutate(post.id)}
+            >
+              📌 {post.pinned ? CATEGORY.unpin : CATEGORY.pin}
+            </button>
             <Link to={`/posts/${post.id}/edit`} className="btn btn--sm btn--ghost">
               수정
             </Link>

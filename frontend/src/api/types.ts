@@ -243,6 +243,8 @@ export interface PostDetail {
   next: PostLink | null;
   otherPosts: PostLink[];
   isAuthor: boolean;
+  /** 대표글로 고정됐는지 */
+  pinned?: boolean;
 }
 
 export interface UploadedImage {

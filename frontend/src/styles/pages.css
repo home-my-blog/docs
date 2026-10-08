@@ -1368,3 +1368,122 @@ ol.rank-list li a {
 .radio__text small {
   font-size: 0.8rem;
 }
+
+/* 대표글 (블로그 첫 화면 위쪽) */
+.pinned {
+  margin-bottom: var(--gap-6);
+}
+.pinned__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pinned__head h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.pinned__head .muted {
+  font-size: 0.8rem;
+}
+.pinned__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap-4);
+}
+.pinned__card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.pinned__card:hover {
+  border-color: var(--line-strong);
+}
+.pinned__thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.pinned__diary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.pinned__title {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.pinned__excerpt {
+  font-size: 0.82rem;
+  color: var(--text-sub);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pin-btn.is-on {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* 다이어리 편집 */
+.edit-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 0.9rem;
+}
+.edit-bar__tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.edit-bar__tools .select {
+  width: auto;
+  min-width: 120px;
+  height: 32px;
+  padding-block: 0;
+  font-size: 0.85rem;
+}
+.edit-list__row.is-on {
+  background: var(--accent-soft);
+}
+.edit-list__label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 10px;
+  cursor: pointer;
+}
+.edit-list__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.edit-list__text .muted {
+  font-size: 0.8rem;
+}
+
+@media (max-width: 860px) {
+  .pinned__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

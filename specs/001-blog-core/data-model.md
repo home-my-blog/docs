@@ -132,6 +132,12 @@ daily_stats (blogs, posts NULL 가능, date)     search_logs (keyword, time)
 - 방문자용 조회 조건은 `visibility = 'PUBLIC' OR author_id = :viewerId` 하나뿐이고 `PostQueryService`에만 있다.
 - 홈·주제·검색·인기 글·태그 목록·이전/다음 글은 viewer가 있어도 공개 글만 쓴다(원본 규칙). 내 블로그 목록과
   글 관리만 본인 비공개 글을 포함한다 (CF-10-6, BM-03-1).
+- 대표글(2026-10-08, 데모 개인 기능 — `V7__pinned_posts.sql`): `pinned_at timestamptz NULL`. 값이 있으면 블로그 첫 화면
+  위쪽에 고정한 순서대로 보인다. 블로그마다 최대 `myblog.post.pin-limit`(3)개로, 고정할 때 블로그 줄을
+  `SELECT … FOR UPDATE`로 잠그고 세서 동시에 눌러도 넘지 않는다. 부분 인덱스 `(blog_id, pinned_at) WHERE pinned_at IS NOT NULL`.
+- 다이어리 편집: 내 글 여러 개를 한 번에 다른 다이어리로 옮기거나(`POST /api/blogs/{id}/posts/move`) 지운다
+  (`POST /api/blogs/{id}/posts/delete`). 하나라도 내 글이 아니면 전체를 거절한다.
+
 
 ## tags, post_tags (태그) — CF-20
 

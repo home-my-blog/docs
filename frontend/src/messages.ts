@@ -137,6 +137,23 @@ export const CATEGORY = {
   tagFilterClear: '✕ 태그 거르기 해제',
   emptyTag: '이 태그가 붙은 글이 없습니다',
   writeHere: '이 다이어리에 쓰기',
+  pin: '대표글로 고정',
+  unpin: '대표글 해제',
+  pinned: '대표글로 고정했습니다',
+  unpinned: '대표글 고정을 풀었습니다',
+  pinnedTitle: '대표글',
+  pinnedHint: '글 화면에서 고정 · 해제할 수 있습니다',
+  edit: '편집',
+  editDone: '완료',
+  selectAll: '전체 선택',
+  selected: (n: number) => `${n}개 선택`,
+  moveTo: '옮길 다이어리',
+  move: '이동',
+  moveConfirm: (n: number, to: string) => `고른 글 ${n}개를 '${to}' 다이어리로 옮길까요?`,
+  moved: (n: number) => `글 ${n}개를 옮겼습니다`,
+  bulkDeleteConfirm: (n: number) => `고른 글 ${n}개를 삭제할까요? 댓글과 좋아요도 함께 지워지고 되돌릴 수 없습니다`,
+  bulkDeleted: (n: number) => `글 ${n}개를 삭제했습니다`,
+  editEmpty: '이 다이어리에는 글이 없습니다',
 } as const;
 
 /** 요구사항.md 3.3~3.5 및 공통 */
