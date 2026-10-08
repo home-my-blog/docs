@@ -55,7 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/posts/*/edit").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
                         .requestMatchers("/api/auth/verifications/**", "/api/auth/verifications",
-                                "/api/auth/signup", "/api/auth/login", "/api/auth/password-reset").permitAll()
+                                "/api/auth/signup", "/api/auth/login", "/api/auth/restore", "/api/auth/password-reset").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(e -> e.authenticationEntryPoint(

@@ -42,7 +42,9 @@ public class CommentService {
     }
 
     private static final String SELECT = """
-            SELECT cm.id, cm.post_id, cm.parent_id, cm.author_id, m.nickname AS author_nickname, cm.body, cm.created_at,
+            SELECT cm.id, cm.post_id, cm.parent_id,
+                   CASE WHEN m.deleted_at IS NULL THEN cm.author_id END AS author_id, -- 탈퇴 신청·익명화한 회원은 "탈퇴한 사용자"
+                   m.nickname AS author_nickname, cm.body, cm.created_at,
                    b.owner_id AS blog_owner_id
             FROM comments cm JOIN posts p ON p.id = cm.post_id JOIN blogs b ON b.id = p.blog_id
             LEFT JOIN members m ON m.id = cm.author_id

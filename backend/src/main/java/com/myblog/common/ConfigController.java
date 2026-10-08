@@ -39,6 +39,7 @@ public class ConfigController {
         limits.put("imagesPerPost", props.image().maxPerPost());
         limits.put("searchMin", props.search().minLength());
         limits.put("searchMax", props.search().maxLength());
+        limits.put("withdrawKeepDays", props.member().withdrawKeep().toDays());
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("limits", limits);
         m.put("pageSize", props.post().pageSize());

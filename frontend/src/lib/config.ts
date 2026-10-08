@@ -30,6 +30,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     imagesPerPost: 10,
     searchMin: 2,
     searchMax: 50,
+    withdrawKeepDays: 30,
   },
   pageSize: 10,
   trendingIntervalSeconds: 5,

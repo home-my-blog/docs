@@ -21,6 +21,7 @@ public class BlogCards {
                    (SELECT count(*) FROM posts p WHERE p.blog_id = b.id AND p.visibility = 'PUBLIC') AS post_count,
                    (SELECT max(p.created_at) FROM posts p WHERE p.blog_id = b.id AND p.visibility = 'PUBLIC') AS last_post_at
             FROM blogs b JOIN members m ON m.id = b.owner_id JOIN topics t ON t.id = b.topic_id
+            WHERE m.deleted_at IS NULL
             """;
 
     private static Map<String, Object> card(java.sql.ResultSet rs) throws java.sql.SQLException {
@@ -42,14 +43,14 @@ public class BlogCards {
             return List.of();
         }
         var byId = new LinkedHashMap<Long, Map<String, Object>>();
-        jdbc.sql(SELECT + " WHERE b.id IN (:ids)").param("ids", ids)
+        jdbc.sql(SELECT + " AND b.id IN (:ids)").param("ids", ids)
                 .query((rs, i) -> card(rs)).list().forEach(c -> byId.put((Long) c.get("id"), c));
         return ids.stream().map(byId::get).filter(java.util.Objects::nonNull).toList();
     }
 
     /** 최근에 글을 쓴 블로그부터. */
     public List<Map<String, Object>> recent(Long topicId, int limit) {
-        String where = topicId == null ? "" : " WHERE b.topic_id = :topic";
+        String where = topicId == null ? "" : " AND b.topic_id = :topic";
         var stmt = jdbc.sql(SELECT + where + " ORDER BY last_post_at DESC NULLS LAST, b.id DESC LIMIT :limit")
                 .param("limit", limit);
         if (topicId != null) {

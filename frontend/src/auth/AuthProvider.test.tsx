@@ -74,4 +74,38 @@ describe('로그인 유도 (CF-16-1)', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }));
     expect(await screen.findByText('로그인 시도가 5회 실패해 잠겼습니다. 10분 뒤에 다시 시도해 주세요')).toBeInTheDocument();
   });
+
+  it('탈퇴 신청한 계정이면 복구할지 묻고, 복구하면 로그인한 채로 동작을 이어서 한다', async () => {
+    let restored = false;
+    const me = { member: { id: 1, nickname: '서연', email: 'a@b.com' }, blog: { id: 1, name: 'b' }, newCommentCount: 0 };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === '/api/auth/me') return restored ? new Response(JSON.stringify(me), { status: 200 }) : new Response(null, { status: 204 });
+      if (url === '/api/auth/login' && init?.method === 'POST') {
+        const body = { error: { code: 'ACCOUNT_WITHDRAWN', message: '탈퇴', restorableUntil: '2026-11-07T10:00:00+09:00' } };
+        return new Response(JSON.stringify(body), { status: 409 });
+      }
+      if (url === '/api/auth/restore' && init?.method === 'POST') {
+        restored = true;
+        return new Response(JSON.stringify({ member: me.member }), { status: 200 });
+      }
+      if (url === '/api/csrf') return new Response('{}', { status: 200 });
+      return new Response(null, { status: 404 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal('confirm', confirm);
+    document.cookie = 'XSRF-TOKEN=t; path=/';
+
+    const onRun = vi.fn();
+    renderWithProviders(<Protected onRun={onRun} />);
+    fireEvent.click(await screen.findByRole('button', { name: '좋아요' }));
+    fireEvent.change(await screen.findByLabelText('이메일'), { target: { value: 'a@b.com' } });
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'abcd123!' } });
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }));
+
+    await waitFor(() => expect(onRun).toHaveBeenCalledTimes(1));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('복구'));
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/restore', expect.objectContaining({ method: 'POST' }));
+  });
 });

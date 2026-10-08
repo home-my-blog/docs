@@ -28,7 +28,7 @@ public record MyBlogProperties(
 
     /** CF-01-3, CF-01-4, CF-15-5 */
     public record Member(int nicknameMin, int nicknameMax, int passwordMin, int passwordMax,
-                         String passwordSpecials, int bioMax) {}
+                         String passwordSpecials, int bioMax, Duration withdrawKeep) {}
 
     /** CF-01-14 ~ 17, CF-01-20 */
     public record Verification(Duration codeTtl, Duration resendInterval, int dailyLimit,

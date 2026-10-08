@@ -58,7 +58,7 @@ public class BlogService {
                 SELECT b.id, b.owner_id, b.name, b.description, b.about, t.code AS topic_code, t.name AS topic_name,
                        m.nickname AS owner_nickname, m.bio AS owner_bio
                 FROM blogs b JOIN topics t ON t.id = b.topic_id JOIN members m ON m.id = b.owner_id
-                WHERE b.id = ?""").param(blogId).query(BlogRow.class).optional();
+                WHERE b.id = ? AND m.deleted_at IS NULL""").param(blogId).query(BlogRow.class).optional();
     }
 
     public BlogRow get(long blogId) {

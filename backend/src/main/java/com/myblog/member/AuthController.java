@@ -63,7 +63,7 @@ public class AuthController {
             signup.checkAvailable(email, req.nickname());
             sendMail = true;
         } else {
-            sendMail = members.existsByEmail(email); // 가입 여부와 관계없이 같은 응답 (CF-25-3)
+            sendMail = members.existsActiveByEmail(email); // 가입 여부와 관계없이 같은 응답 (CF-25-3), 탈퇴 신청한 회원 제외
         }
         var expiresAt = verification.send(purpose, email, sendMail);
         return ResponseEntity.accepted().body(Map.of("expiresAt", expiresAt));
@@ -91,6 +91,13 @@ public class AuthController {
         return Map.of("member", memberView(m));
     }
 
+    @PostMapping("/api/auth/restore")
+    public Map<String, Object> restore(@RequestBody LoginRequest req, HttpServletRequest httpReq,
+                                       HttpServletResponse httpRes) {
+        Member m = login.restore(req.email(), req.password(), httpReq, httpRes);
+        return Map.of("member", memberView(m));
+    }
+
     @PostMapping("/api/auth/logout")
     public ResponseEntity<Void> logout(HttpServletRequest req) {
         HttpSession session = req.getSession(false);
@@ -107,7 +114,7 @@ public class AuthController {
             return ResponseEntity.noContent().build();
         }
         var member = members.findById(memberId);
-        if (member.isEmpty()) {
+        if (member.isEmpty() || member.get().withdrawn()) {
             return ResponseEntity.noContent().build();
         }
         Map<String, Object> body = new LinkedHashMap<>();
