@@ -43,6 +43,7 @@ export interface AppConfig {
     postTitleMax: number;
     postBodyMax: number;
     categoryNameMax: number;
+    categoryDescriptionMax: number;
     commentMax: number;
     tagsPerPost: number;
     tagMax: number;
@@ -182,13 +183,25 @@ export interface BlogAbout {
   about: string;
 }
 
+/** 화면에서는 "다이어리" */
 export interface Category {
   id: number;
   name: string;
+  /** 다이어리 소개 */
+  description: string;
+  /** PRIVATE면 주인만 보고, 그 안의 글도 주인만 본다 */
+  visibility: Visibility;
   postCount: number;
   isDefault: boolean;
   colorIndex: number;
 }
+
+export interface BlogTag {
+  name: string;
+  count: number;
+}
+
+export type BlogPostSort = 'latest' | 'popular' | 'oldest';
 
 export interface BlogPostListItem {
   id: number;

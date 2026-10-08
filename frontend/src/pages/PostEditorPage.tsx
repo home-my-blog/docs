@@ -68,8 +68,14 @@ function CreateLoader({ me }: { me: MeResponse }) {
 
   const categories = cats.data;
   const lastId = last.data?.categoryId;
+  // 다이어리 화면의 "이 다이어리에 쓰기"는 /write?category=ID 로 온다
+  const askedId = Number(params.get('category'));
   const defaultCat =
-    categories.find((c) => c.id === lastId) ?? categories.find((c) => c.isDefault) ?? categories[0] ?? null;
+    categories.find((c) => c.id === askedId) ??
+    categories.find((c) => c.id === lastId) ??
+    categories.find((c) => c.isDefault) ??
+    categories[0] ??
+    null;
   const d = draftId !== null ? draft.data : undefined;
 
   return (
@@ -460,7 +466,7 @@ function EditorForm({ mode, postId, draftId: initialDraftId = null, blogId, cate
       <div className="editor__meta">
         <div className="field">
           <label htmlFor={ids.category} className="field__label">
-            분류
+            다이어리
           </label>
           <select
             id={ids.category}
@@ -468,7 +474,7 @@ function EditorForm({ mode, postId, draftId: initialDraftId = null, blogId, cate
             value={categoryId ?? ''}
             onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
           >
-            {categoryId === null && <option value="">분류 선택</option>}
+            {categoryId === null && <option value="">다이어리 선택</option>}
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}

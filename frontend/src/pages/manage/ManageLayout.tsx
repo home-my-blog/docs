@@ -6,7 +6,7 @@ import type { ManageContext } from './context';
 const MENU = [
   { to: '/manage', label: '대시보드', end: true },
   { to: '/manage/posts', label: '글 관리' },
-  { to: '/manage/categories', label: '분류 관리' },
+  { to: '/manage/categories', label: '다이어리 관리' },
   { to: '/manage/comments', label: '댓글 관리', comments: true },
   { to: '/manage/stats', label: '통계' },
   { to: '/manage/settings', label: '설정' },

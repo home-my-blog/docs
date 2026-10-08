@@ -1,5 +1,6 @@
 package com.myblog.blog;
 
+import com.myblog.post.PostQueryService;
 import com.myblog.common.MyBlogProperties;
 import com.myblog.common.Texts;
 import com.myblog.common.error.ApiException;
@@ -19,7 +20,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class CategoryService {
     public record CategoryRow(long id, long blogId, String name, int sortOrder, boolean isDefault, int colorIndex) {}
 
-    public record CategoryView(long id, String name, long postCount, boolean isDefault, int colorIndex) {}
+    /** 화면에서는 "다이어리". description = 소개, visibility = PUBLIC/PRIVATE (비공개면 주인만 본다) */
+    public record CategoryView(long id, String name, String description, String visibility, long postCount,
+                               boolean isDefault, int colorIndex) {}
+
+    /** 다이어리 설정. 보낸 칸만 바꾼다. */
+    public record Update(String name, String description, Integer colorIndex, String visibility) {}
 
     private final JdbcClient jdbc;
     private final MyBlogProperties props;
@@ -40,14 +46,17 @@ public class CategoryService {
         return name.toLowerCase(Locale.ROOT);
     }
 
-    /** 순서대로, 분류마다 글 개수. 방문자는 공개 글만, 주인은 비공개 포함 (CF-08-9). */
+    /**
+     * 순서대로, 다이어리마다 글 개수 (CF-08-9). 주인은 비공개 글·비공개 다이어리까지,
+     * 방문자는 공개 다이어리와 그 안의 공개 글만 본다.
+     */
     public List<CategoryView> list(long blogId, boolean owner) {
-        return jdbc.sql("""
-                SELECT c.id, c.name, c.is_default, c.color_index,
-                       (SELECT count(*) FROM posts p WHERE p.category_id = c.id
-                          AND (p.visibility = 'PUBLIC' OR ?)) AS post_count
-                FROM categories c WHERE c.blog_id = ? ORDER BY c.sort_order, c.id""")
-                .params(owner, blogId).query(CategoryView.class).list();
+        return jdbc.sql("SELECT c.id, c.name, c.description, c.visibility, c.is_default, c.color_index,"
+                        + " (SELECT count(*) FROM posts p WHERE p.category_id = c.id AND (? OR "
+                        + PostQueryService.PUBLIC_ONLY + ")) AS post_count"
+                        + " FROM categories c WHERE c.blog_id = ? AND (? OR c.visibility = 'PUBLIC')"
+                        + " ORDER BY c.sort_order, c.id")
+                .params(owner, blogId, owner).query(CategoryView.class).list();
     }
 
     public CategoryRow get(long categoryId) {
@@ -104,6 +113,34 @@ public class CategoryService {
         } catch (DataIntegrityViolationException e) {
             throw ApiException.withDetails(ErrorCode.CATEGORY_NAME_TAKEN, Messages.CATEGORY_NAME_TAKEN,
                     Map.of("fields", Map.of("name", Messages.CATEGORY_NAME_TAKEN)));
+        }
+    }
+
+    /** 다이어리 설정: 이름·소개·표지 색·공개 범위 중 보낸 것만 바꾼다. */
+    @Transactional
+    public void update(long categoryId, long ownerBlogId, Update req) {
+        requireOwned(categoryId, ownerBlogId);
+        if (req.name() != null) {
+            rename(categoryId, ownerBlogId, req.name());
+        }
+        if (req.description() != null) {
+            String d = Texts.trim(req.description());
+            if (Texts.length(d) > props.blog().categoryDescriptionMax()) {
+                throw ApiException.field("description", Messages.categoryDescriptionTooLong(props.blog().categoryDescriptionMax()));
+            }
+            jdbc.sql("UPDATE categories SET description = ? WHERE id = ?").params(d, categoryId).update();
+        }
+        if (req.colorIndex() != null) {
+            if (req.colorIndex() < 0 || req.colorIndex() >= props.blog().colorCount()) {
+                throw ApiException.field("colorIndex", "표지 색을 다시 골라 주세요");
+            }
+            jdbc.sql("UPDATE categories SET color_index = ? WHERE id = ?").params(req.colorIndex(), categoryId).update();
+        }
+        if (req.visibility() != null) {
+            if (!req.visibility().equals("PUBLIC") && !req.visibility().equals("PRIVATE")) {
+                throw ApiException.field("visibility", "공개 범위가 올바르지 않습니다");
+            }
+            jdbc.sql("UPDATE categories SET visibility = ? WHERE id = ?").params(req.visibility(), categoryId).update();
         }
     }
 

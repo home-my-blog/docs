@@ -43,7 +43,8 @@ public record MyBlogProperties(
 
     /** CF-04, CF-08, spec Assumptions(기본 주제) */
     public record Blog(int nameMax, int descriptionMax, int aboutMax, int categoryNameMax,
-                       String defaultTopic, String defaultCategoryName, int colorCount) {}
+                       String defaultTopic, String defaultCategoryName, int colorCount,
+                       int categoryDescriptionMax, int blogTags) {}
 
     /** CF-05, CF-10 */
     public record Post(int titleMax, int bodyMax, int excerptLength, int pageSize, int otherPosts) {}

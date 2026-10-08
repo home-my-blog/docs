@@ -74,6 +74,8 @@ myblog:
     description-max: 200
     about-max: 5000
     category-name-max: 20
+    category-description-max: 100   # 다이어리 소개
+    blog-tags: 12                    # 블로그 화면 왼쪽 태그 모음 개수
     default-topic: hobby
     default-category-name: 미분류
     color-count: 8

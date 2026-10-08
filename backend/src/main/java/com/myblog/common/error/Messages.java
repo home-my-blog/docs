@@ -49,16 +49,16 @@ public final class Messages {
     public static String draftLimit(int max) {
         return "임시저장은 " + max + "개까지 할 수 있습니다. 쓰지 않는 임시저장 글을 지워 주세요";
     }
-    public static final String CATEGORY_REQUIRED = "분류를 선택해 주세요";
+    public static final String CATEGORY_REQUIRED = "다이어리를 선택해 주세요";
     public static final String POST_NOT_FOUND = "존재하지 않는 글입니다";
     public static final String BLOG_NOT_FOUND = "존재하지 않는 블로그입니다";
     public static final String TOPIC_NOT_FOUND = "존재하지 않는 주제입니다";
-    public static final String CATEGORY_NOT_FOUND = "존재하지 않는 분류입니다";
-    public static final String CATEGORY_NAME_TAKEN = "이미 있는 분류입니다";
-    public static final String CATEGORY_HAS_POSTS = "이 분류에 글이 {N}개 있어 삭제할 수 없습니다. 글을 다른 분류로 옮긴 뒤 삭제해 주세요";
+    public static final String CATEGORY_NOT_FOUND = "존재하지 않는 다이어리입니다";
+    public static final String CATEGORY_NAME_TAKEN = "이미 있는 다이어리입니다";
+    public static final String CATEGORY_HAS_POSTS = "이 다이어리에 글이 {N}개 있어 삭제할 수 없습니다. 글을 다른 다이어리로 옮긴 뒤 삭제해 주세요";
     public static final String DEFAULT_CATEGORY = "미분류는 삭제할 수 없습니다";
-    public static final String CATEGORY_NAME_REQUIRED = "분류 이름을 입력해 주세요";
-    public static final String CATEGORY_NAME_TOO_LONG = "분류 이름은 20자 이하로 입력해 주세요";
+    public static final String CATEGORY_NAME_REQUIRED = "다이어리 이름을 입력해 주세요";
+    public static final String CATEGORY_NAME_TOO_LONG = "다이어리 이름은 20자 이하로 입력해 주세요";
     public static final String BLOG_NAME_REQUIRED = "블로그 이름을 입력해 주세요";
     public static final String BLOG_NAME_TOO_LONG = "블로그 이름은 30자 이하로 입력해 주세요";
     public static final String BLOG_DESCRIPTION_TOO_LONG = "소개는 200자 이하로 입력해 주세요";
@@ -80,6 +80,10 @@ public final class Messages {
     public static final String TOO_MANY_IMAGES = "이미지는 글 하나에 10장까지 올릴 수 있습니다";
     public static final String TOO_MANY_TAGS = "태그는 5개까지 붙일 수 있습니다";
     public static final String TAG_RULE = "태그는 공백과 쉼표 없이 1~15자로 입력해 주세요";
+
+    public static String categoryDescriptionTooLong(int max) {
+        return "다이어리 소개는 " + max + "자 이하로 입력해 주세요";
+    }
 
     public static String accountLocked(long minutes) {
         return ACCOUNT_LOCKED.replace("{N}", String.valueOf(minutes));

@@ -1,5 +1,6 @@
 package com.myblog.home;
 
+import com.myblog.post.PostQueryService;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,13 +17,12 @@ public class BlogCards {
         this.jdbc = jdbc;
     }
 
-    private static final String SELECT = """
-            SELECT b.id, b.name, b.description, m.nickname, t.code, t.name AS topic_name,
-                   (SELECT count(*) FROM posts p WHERE p.blog_id = b.id AND p.visibility = 'PUBLIC') AS post_count,
-                   (SELECT max(p.created_at) FROM posts p WHERE p.blog_id = b.id AND p.visibility = 'PUBLIC') AS last_post_at
-            FROM blogs b JOIN members m ON m.id = b.owner_id JOIN topics t ON t.id = b.topic_id
-            WHERE m.deleted_at IS NULL
-            """;
+    private static final String SELECT = "SELECT b.id, b.name, b.description, m.nickname, t.code, t.name AS topic_name,"
+            + " (SELECT count(*) FROM posts p WHERE p.blog_id = b.id AND " + PostQueryService.PUBLIC_ONLY + ") AS post_count,"
+            + " (SELECT max(p.created_at) FROM posts p WHERE p.blog_id = b.id AND " + PostQueryService.PUBLIC_ONLY
+            + ") AS last_post_at"
+            + " FROM blogs b JOIN members m ON m.id = b.owner_id JOIN topics t ON t.id = b.topic_id"
+            + " WHERE m.deleted_at IS NULL ";
 
     private static Map<String, Object> card(java.sql.ResultSet rs) throws java.sql.SQLException {
         Map<String, Object> m = new LinkedHashMap<>();

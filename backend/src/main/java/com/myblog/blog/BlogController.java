@@ -60,10 +60,11 @@ public class BlogController {
         return ResponseEntity.status(201).body(Map.of("id", categories.add(blogId, req.name())));
     }
 
+    /** 다이어리 설정 (이름·소개·표지 색·공개 범위). 보낸 칸만 바꾼다. */
     @PatchMapping("/api/categories/{id}")
-    public ResponseEntity<Void> rename(@PathVariable long id, @AuthenticationPrincipal Long me,
-                                       @RequestBody NameRequest req) {
-        categories.rename(id, ownBlog(me), req.name());
+    public ResponseEntity<Void> update(@PathVariable long id, @AuthenticationPrincipal Long me,
+                                       @RequestBody CategoryService.Update req) {
+        categories.update(id, ownBlog(me), req);
         return ResponseEntity.ok().build();
     }
 

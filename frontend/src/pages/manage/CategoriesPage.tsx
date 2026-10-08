@@ -29,7 +29,7 @@ function categoryErrorMessage(e: unknown, fallbackCount?: number): string {
   return errorMessage(e);
 }
 
-/** 분류 관리: 추가 · 이름 변경 · 위/아래 · 삭제 (BM-04, CF-08) */
+/** 다이어리 관리: 추가 · 이름 변경 · 위/아래 · 삭제 (BM-04, CF-08) */
 export function CategoriesPage() {
   const { blogId } = useManage();
   const queryClient = useQueryClient();
@@ -107,7 +107,7 @@ export function CategoriesPage() {
 
   return (
     <div>
-      <h1 className="page-title">분류 관리</h1>
+      <h1 className="page-title">다이어리 관리</h1>
       <FormMessage kind={message?.kind ?? 'info'} message={message?.text} />
       <ul className="cat-manage card">
         {cats.map((c, i) => (
@@ -117,7 +117,7 @@ export function CategoriesPage() {
               <div className="cat-manage__edit">
                 <input
                   className="input input--sm"
-                  aria-label="분류 이름"
+                  aria-label="다이어리 이름"
                   value={editing.name}
                   maxLength={limits.categoryNameMax + 5}
                   autoFocus
@@ -172,13 +172,13 @@ export function CategoriesPage() {
 
       <form className="cat-add" onSubmit={onAdd} noValidate>
         <label htmlFor={newId} className="sr-only">
-          새 분류 이름
+          새 다이어리 이름
         </label>
         <input
           id={newId}
           ref={newRef}
           className="input"
-          placeholder="새 분류 이름"
+          placeholder="새 다이어리 이름"
           value={newName}
           maxLength={limits.categoryNameMax + 5}
           onChange={(e) => {

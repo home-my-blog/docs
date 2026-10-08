@@ -1,5 +1,6 @@
 package com.myblog.post;
 
+import com.myblog.common.MyBlogProperties;
 import com.myblog.blog.BlogService;
 import com.myblog.comment.CommentService;
 import com.myblog.common.PageResponse;
@@ -35,10 +36,11 @@ public class PostController {
     private final BlogService blogs;
     private final ViewRecorder views;
     private final JdbcClient jdbc;
+    private final MyBlogProperties props;
 
     public PostController(PostQueryService queries, PostCommandService commands, InteractionService interactions,
                           TagService tags, CommentService comments, BlogService blogs, ViewRecorder views,
-                          JdbcClient jdbc) {
+                          JdbcClient jdbc, MyBlogProperties props) {
         this.queries = queries;
         this.commands = commands;
         this.interactions = interactions;
@@ -47,15 +49,27 @@ public class PostController {
         this.blogs = blogs;
         this.views = views;
         this.jdbc = jdbc;
+        this.props = props;
     }
 
+    /** sort: latest(기본) · popular · oldest, tag: 이 태그가 붙은 글만 */
     @GetMapping("/api/blogs/{blogId}/posts")
     public PageResponse<Map<String, Object>> blogPosts(@PathVariable long blogId,
                                                        @RequestParam(required = false) Long categoryId,
+                                                       @RequestParam(required = false) String tag,
+                                                       @RequestParam(required = false) String sort,
                                                        @RequestParam(required = false) Integer page,
                                                        @AuthenticationPrincipal Long viewer) {
         blogs.get(blogId);
-        return queries.blogPosts(blogId, categoryId, viewer, page);
+        String tagKey = tag == null ? null : TagService.key(tag.strip().replaceFirst("^#+", ""));
+        return queries.blogPosts(blogId, categoryId, tagKey, sort, viewer, page);
+    }
+
+    /** 블로그 왼쪽 태그 모음 */
+    @GetMapping("/api/blogs/{blogId}/tags")
+    public List<Map<String, Object>> blogTags(@PathVariable long blogId, @AuthenticationPrincipal Long viewer) {
+        blogs.get(blogId);
+        return queries.blogTags(blogId, viewer, props.blog().blogTags());
     }
 
     @GetMapping("/api/posts/{id}")

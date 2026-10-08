@@ -85,7 +85,7 @@ daily_stats (blogs, posts NULL 가능, date)     search_logs (keyword, time)
 - 나중에 1인 여러 블로그로 늘릴 때는 `owner_id`의 `UNIQUE`만 없앤다 (03-코어 '구현 방식').
 - 블로그 소개 화면의 "주인 이름·한 줄 소개"는 `members.nickname`, `members.bio`를 쓴다.
 
-## categories (분류) — CF-07, CF-08, BM-04
+## categories (분류 = 화면 이름 "다이어리") — CF-07, CF-08, BM-04
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
@@ -94,11 +94,18 @@ daily_stats (blogs, posts NULL 가능, date)     search_logs (keyword, time)
 | name_key | varchar(20) | NOT NULL. `lower(name)`. `UNIQUE (blog_id, name_key)` |
 | sort_order | int | NOT NULL. 추가하면 맨 아래(최댓값+1) (CF-08-3, 5) |
 | is_default | boolean | NOT NULL DEFAULT false. "미분류" 하나만 true (CF-03-3, CF-08-8) |
-| color_index | int | NOT NULL. 정해진 색 목록에서 순서대로 자동 배정 (BM-04-3) |
+| color_index | int | NOT NULL. 다이어리 표지 색. 정해진 8색 목록에서 순서대로 자동 배정하고, 다이어리 설정에서 바꾼다 (BM-04-3) |
+| description | varchar(100) | NOT NULL DEFAULT ''. 다이어리 소개 0~100자 |
+| visibility | varchar(10) | NOT NULL DEFAULT 'PUBLIC', CHECK (PUBLIC/PRIVATE). 부분 인덱스 `WHERE visibility = 'PRIVATE'` |
 
 - `posts.category_id`의 FK를 `ON DELETE RESTRICT`로 둬서, 글이 있는 분류는 DB에서도 지울 수 없다(CF-08-6).
 - `is_default = true`인 분류는 서비스에서 삭제를 거절한다. 부분 고유 인덱스
   `UNIQUE (blog_id) WHERE is_default`로 블로그당 하나만 허용한다.
+- 다이어리(2026-10-08, 데모 common-demo의 다이어리 컨셉 — `V6__diaries.sql`): 표와 칸 이름은 그대로 두고 화면에서만
+  "다이어리"라고 부른다. 비공개 다이어리는 주인만 보고, 그 안의 글은 글 자체가 공개여도 주인만 본다
+  (`PostQueryService.OPEN_CATEGORY`가 공개 글 조건 `PUBLIC_ONLY`/`VISIBLE_TO`에 들어 있다).
+- 블로그 글 목록은 다이어리·태그로 거르고 최신순·인기순·오래된 순으로 정렬한다. 인기 점수 = 조회 ×1 + 좋아요 ×5
+  + 댓글 단 사람 ×3(글쓴이 본인 것은 빼고, 한 사람 댓글 여러 개는 한 명).
 
 ## posts (글) — CF-05, CF-06, CF-09, CF-13
 
