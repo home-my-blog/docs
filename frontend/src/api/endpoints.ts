@@ -102,8 +102,11 @@ export const getTagPosts = (name: string, page: number) =>
 
 /* 소통 */
 export const getComments = (postId: number) => api<Comment[]>(`/api/posts/${postId}/comments`);
-export const createComment = (postId: number, body: string) =>
-  api<Comment | undefined>(`/api/posts/${postId}/comments`, { method: 'POST', body: { body } });
+export const createComment = (postId: number, body: string, parentId?: number) =>
+  api<Comment | undefined>(`/api/posts/${postId}/comments`, {
+    method: 'POST',
+    body: parentId === undefined ? { body } : { body, parentId },
+  });
 export const deleteComment = (id: number) => api<void>(`/api/comments/${id}`, { method: 'DELETE' });
 export const toggleLike = (postId: number) => api<LikeResponse>(`/api/posts/${postId}/like`, { method: 'PUT' });
 export const reportPost = (postId: number, body: { reason: ReportReason; detail?: string }) =>

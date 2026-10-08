@@ -13,7 +13,7 @@ PostgreSQL 16 기준. 모든 표의 기본 키는 `id bigint generated always as
 members 1 ── 1 blogs N ── 1 topics
    │          │
    │          ├── N categories
-   │          └── N posts ── N comments (author → members, NULL 가능)
+   │          └── N posts ── N comments (author → members, NULL 가능 / parent → comments, 답글 한 단계)
    │                 ├── N post_likes (members)
    │                 ├── N post_tags N ── 1 tags
    │                 ├── N post_flags (members)
@@ -166,11 +166,17 @@ daily_stats (blogs, posts NULL 가능, date)     search_logs (keyword, time)
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
 | post_id | bigint → posts | NOT NULL, ON DELETE CASCADE (CF-18-6) |
+| parent_id | bigint → comments | NULL = 원 댓글, 값 = 그 원 댓글의 답글. ON DELETE CASCADE(원 댓글을 지우면 답글도). 원 댓글만 가리킬 수 있다(서버에서 검사) |
 | author_id | bigint → members | NULL 가능, ON DELETE SET NULL → "탈퇴한 사용자" (CF-18-6) |
 | body | varchar(500) | NOT NULL. 1~500자, 공백만 불가, 줄바꿈 허용 (CF-18-2) |
 | created_at | timestamptz | NOT NULL |
 
-인덱스: `(post_id, created_at)`(글 상세, 오래된 순), `(created_at)` + posts→blogs 조인(댓글 관리, 새 댓글 수).
+인덱스: `(post_id, created_at)`(글 상세, 오래된 순), `(created_at)` + posts→blogs 조인(댓글 관리, 새 댓글 수), `(parent_id)`.
+
+답글은 한 단계만 단다(2026-10-08, 팀 리뷰 — `V3__comment_replies.sql`). 깊이가 정해져 있어 재귀 쿼리 없이
+쿼리 한 번으로 화면 순서대로 읽는다: `ORDER BY COALESCE(parent_id, id), parent_id NULLS FIRST, created_at, id`
+→ 원 댓글, 그 답글들, 다음 원 댓글… API는 원 댓글마다 `replies`로 묶어 준다. 더 깊은 답글이 필요해지면
+경로(path) 칸이나 클로저 표로 바꾼다.
 새 댓글 수 = 내 블로그 글의 댓글 중 `created_at > blogs.comments_seen_at AND author_id <> 블로그 주인`.
 
 ## daily_stats (일별 통계) — BM-02, BM-06

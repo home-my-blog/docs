@@ -244,4 +244,44 @@ class PostFlowIT extends IntegrationTest {
         mvc.perform(delete("/api/posts/" + post).with(csrf()).session(s)).andExpect(status().isOk());
         mvc.perform(get(url)).andExpect(status().isNotFound());
     }
+
+    @Test
+    void CF_18_repliesOneLevel() throws Exception {
+        MockHttpSession a = member("에이", "a@example.com");
+        MockHttpSession b = member("비이", "b@example.com");
+        long post = writePost(a, "답글 글", "본문", "PUBLIC");
+        long other = writePost(a, "다른 글", "본문", "PUBLIC");
+        String url = "/api/posts/" + post + "/comments";
+
+        long root1 = read(mvc.perform(postJson(url, Map.of("body", "원 댓글 1")).session(b)).andReturn()).get("id").asLong();
+        long root2 = read(mvc.perform(postJson(url, Map.of("body", "원 댓글 2")).session(a)).andReturn()).get("id").asLong();
+        redis.delete(redis.keys("comment:cooldown:*"));
+        long reply = read(mvc.perform(postJson(url, Map.of("body", "답글", "parentId", root1)).session(a))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.parentId").value(root1)).andReturn())
+                .get("id").asLong();
+        redis.delete(redis.keys("comment:cooldown:*"));
+
+        // 답글의 답글, 다른 글의 댓글, 없는 댓글에는 못 단다
+        mvc.perform(postJson(url, Map.of("body", "답글의 답글", "parentId", reply)).session(b))
+                .andExpect(jsonPath("$.error.fields.parentId").value("답글을 달 댓글을 찾을 수 없습니다"));
+        mvc.perform(postJson("/api/posts/" + other + "/comments", Map.of("body", "엉뚱한 글", "parentId", root1)).session(b))
+                .andExpect(status().isBadRequest());
+        mvc.perform(postJson(url, Map.of("body", "없는 댓글", "parentId", 999999)).session(b))
+                .andExpect(status().isBadRequest());
+
+        // 원 댓글 순서대로, 답글은 원 댓글 아래 replies에
+        mvc.perform(get(url))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(root1))
+                .andExpect(jsonPath("$[0].replies.length()").value(1))
+                .andExpect(jsonPath("$[0].replies[0].id").value(reply))
+                .andExpect(jsonPath("$[1].id").value(root2))
+                .andExpect(jsonPath("$[1].replies.length()").value(0));
+        mvc.perform(get("/api/manage/comments").session(a)).andExpect(jsonPath("$.items[?(@.id == " + reply + ")].reply").value(true));
+
+        // 원 댓글을 지우면 답글도 함께 지워진다
+        mvc.perform(delete("/api/comments/" + root1).with(csrf()).session(b)).andExpect(status().isNoContent());
+        assertThat(jdbc.sql("SELECT count(*) FROM comments WHERE post_id = ?").param(post).query(Long.class).single())
+                .isEqualTo(1);
+    }
 }

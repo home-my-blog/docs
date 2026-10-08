@@ -62,6 +62,7 @@ public final class Messages {
     public static final String COMMENT_TOO_LONG = "댓글은 500자 이하로 입력해 주세요";
     public static final String COMMENT_TOO_SOON = "잠시 뒤에 다시 등록해 주세요";
     public static final String COMMENT_NOT_FOUND = "존재하지 않는 댓글입니다";
+    public static final String REPLY_PARENT_NOT_FOUND = "답글을 달 댓글을 찾을 수 없습니다";
     public static final String OWN_POST = "내 글에는 할 수 없습니다";
     public static final String ALREADY_REPORTED = "이미 신고한 글입니다";
     public static final String REPORT_REASON_REQUIRED = "신고 사유를 골라 주세요";

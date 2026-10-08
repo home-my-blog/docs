@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class CommentController {
-    public record CommentRequest(String body) {}
+    public record CommentRequest(String body, Long parentId) {}
 
     private final CommentService comments;
 
@@ -29,7 +29,7 @@ public class CommentController {
     @PostMapping("/api/posts/{postId}/comments")
     public ResponseEntity<Map<String, Object>> create(@PathVariable long postId, @AuthenticationPrincipal Long me,
                                                       @RequestBody CommentRequest req) {
-        return ResponseEntity.status(201).body(comments.create(postId, me, req.body()));
+        return ResponseEntity.status(201).body(comments.create(postId, me, req.body(), req.parentId()));
     }
 
     @DeleteMapping("/api/comments/{id}")
