@@ -142,14 +142,15 @@ public class ImageService {
         }
     }
 
-    /** 올렸지만 글에 연결되지 않은 이미지는 24시간 뒤 지운다. */
+    /** 올렸지만 글에 연결되지 않은 이미지는 24시간 뒤 지운다. 임시저장 글이 쓰고 있는 이미지는 남긴다. */
     @Scheduled(fixedDelay = 3_600_000, initialDelay = 60_000)
     public void cleanOrphans() {
         var cutoff = clock.nowOffset().minus(rules.orphanTtl());
         List<Map<String, Object>> rows = jdbc.sql("""
                 SELECT id, storage_key FROM post_images
                 WHERE post_id IS NULL AND created_at < ?
-                  AND id NOT IN (SELECT cover_image_id FROM posts WHERE cover_image_id IS NOT NULL)""")
+                  AND id NOT IN (SELECT cover_image_id FROM posts WHERE cover_image_id IS NOT NULL)
+                  AND NOT EXISTS (SELECT 1 FROM drafts d WHERE post_images.id = ANY (d.image_ids))""")
                 .param(cutoff).query().listOfRows();
         for (var row : rows) {
             jdbc.sql("DELETE FROM post_images WHERE id = ?").param(row.get("id")).update();

@@ -34,6 +34,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   pageSize: 10,
   trendingIntervalSeconds: 5,
+  draftLimit: 20,
+  draftAutosaveSeconds: 60,
   topics: DEFAULT_TOPICS,
 };
 

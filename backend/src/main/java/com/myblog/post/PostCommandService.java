@@ -20,8 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 /** 글 작성·수정·삭제 (CF-05, CF-13, CF-20, CF-22). */
 @Service
 public class PostCommandService {
+    /** draftId: 임시저장 글을 이어 써서 올리면, 올린 뒤 그 임시저장 글을 지운다 (새 글에만 쓴다). */
     public record Request(String title, String body, Long categoryId, String visibility, List<String> tags,
-                          List<Long> imageIds, Long coverImageId) {}
+                          List<Long> imageIds, Long coverImageId, Long draftId) {}
 
     private record Valid(String title, String body, long categoryId, String visibility, List<String> tags) {}
 
@@ -33,9 +34,11 @@ public class PostCommandService {
     private final TagService tags;
     private final ImageService images;
     private final KoreanClock clock;
+    private final DraftService drafts;
 
     public PostCommandService(JdbcClient jdbc, MyBlogProperties props, BlogService blogs, CategoryService categories,
-                              PostQueryService queries, TagService tags, ImageService images, KoreanClock clock) {
+                              PostQueryService queries, TagService tags, ImageService images, KoreanClock clock,
+                              DraftService drafts) {
         this.jdbc = jdbc;
         this.props = props;
         this.blogs = blogs;
@@ -44,6 +47,7 @@ public class PostCommandService {
         this.tags = tags;
         this.images = images;
         this.clock = clock;
+        this.drafts = drafts;
     }
 
     private Valid validate(long blogId, Request req) {
@@ -109,6 +113,7 @@ public class PostCommandService {
         long id = keys.getKey().longValue();
         tags.replace(id, v.tags());
         images.attach(id, memberId, imageIds(req));
+        drafts.deleteQuietly(memberId, req.draftId());
         return id;
     }
 

@@ -173,6 +173,25 @@ daily_stats (blogs, posts NULL 가능, date)     search_logs (keyword, time)
 - 글 저장 시 본문에 쓰인 이미지 id들을 그 글에 연결하고, 글당 10장을 넘으면 거절한다 (CF-22-3).
 - `post_id IS NULL AND created_at < now - 24h`인 행과 파일은 스케줄러가 지운다.
 
+## drafts (임시저장 글) — CF-05
+
+| 칸 | 타입 | 제약 / 규칙 |
+|----|------|-------------|
+| member_id | bigint → members | NOT NULL, ON DELETE CASCADE |
+| category_id | bigint → categories | NULL 가능, ON DELETE SET NULL. 내 블로그 분류가 아니면 비워서 저장 |
+| title | varchar(100) | NOT NULL DEFAULT ''. 0~100자 |
+| body | text | NOT NULL DEFAULT ''. 0~10,000자. 제목·본문 중 하나는 있어야 한다 |
+| visibility | varchar(10) | NOT NULL DEFAULT 'PUBLIC', CHECK (PUBLIC/PRIVATE) |
+| tags | varchar(15)[] | NOT NULL DEFAULT '{}'. 글과 같은 태그 규칙으로 정리해서 저장 |
+| image_ids | bigint[] | NOT NULL DEFAULT '{}'. 본문에 넣은 사진. 24시간 고아 사진 정리에서 빼 준다 |
+| cover_image_id | bigint | NULL |
+| created_at / updated_at | timestamptz | NOT NULL |
+
+인덱스: `(member_id, updated_at DESC)`(내 임시저장 목록). 회원별 최대 `myblog.draft.max-per-member`(20)개,
+글쓰기 중 바뀐 게 있으면 `myblog.draft.autosave-interval`(60초)마다 자동 저장한다(`V5__drafts.sql`).
+아직 올린 글이 아니라 태그·사진은 정식 표에 연결하지 않고 배열로만 들고 있다가, 글을 올릴 때
+(`POST /api/blogs/{id}/posts`의 `draftId`) 정식 표에 연결하고 그 임시저장 글을 지운다.
+
 ## comments (블로그 글 댓글) — CF-18, BM-05
 
 | 칸 | 타입 | 제약 / 규칙 |

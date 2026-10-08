@@ -17,7 +17,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * 보관 기간이 지난 탈퇴 회원을 정리한다 (CF-15-17~21). 매일 새벽에 돈다.
  * <ul>
- *   <li>지움: 블로그·분류·글(과 그 글의 댓글·좋아요·태그 연결·신고·통계·이미지), 내가 누른 좋아요, 내가 올린 이미지</li>
+ *   <li>지움: 블로그·분류·글(과 그 글의 댓글·좋아요·태그 연결·신고·통계·이미지), 내가 누른 좋아요, 임시저장 글, 내가 올린 이미지</li>
  *   <li>바꿈(익명화): 이메일·닉네임 → del 랜덤값, 비밀번호 해시 → 쓸 수 없는 값, 소개 → 빈 값</li>
  *   <li>남김: 회원 줄(번호), 남의 글에 단 댓글("탈퇴한 사용자"로 보임), 내가 한 신고 기록</li>
  * </ul>
@@ -71,6 +71,7 @@ public class WithdrawalCleaner {
         jdbc.sql("DELETE FROM posts WHERE author_id = ?").param(id).update(); // 분류 RESTRICT보다 먼저
         jdbc.sql("DELETE FROM blogs WHERE owner_id = ?").param(id).update();
         jdbc.sql("DELETE FROM post_likes WHERE member_id = ?").param(id).update();
+        jdbc.sql("DELETE FROM drafts WHERE member_id = ?").param(id).update();
         jdbc.sql("DELETE FROM post_images WHERE uploader_id = ?").param(id).update();
 
         String nickname = uniqueNickname();
