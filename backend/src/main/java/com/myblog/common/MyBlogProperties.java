@@ -24,7 +24,8 @@ public record MyBlogProperties(
         Trending trending,
         Home home,
         Dashboard dashboard,
-        Mail mail) {
+        Mail mail,
+        Draft draft) {
 
     /** CF-01-3, CF-01-4, CF-15-5 */
     public record Member(int nicknameMin, int nicknameMax, int passwordMin, int passwordMax,
@@ -46,6 +47,9 @@ public record MyBlogProperties(
 
     /** CF-05, CF-10 */
     public record Post(int titleMax, int bodyMax, int excerptLength, int pageSize, int otherPosts) {}
+
+    /** 임시저장: 회원별 최대 개수, 글쓰기 중 자동 저장 간격 */
+    public record Draft(int maxPerMember, Duration autosaveInterval) {}
 
     /** CF-18, BM-05-2 */
     public record Comment(int bodyMax, Duration cooldown, int previewLength) {}

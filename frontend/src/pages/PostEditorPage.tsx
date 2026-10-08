@@ -1,15 +1,29 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useId, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { errorMessage, isApiError, isNotFound } from '../api/client';
-import { createPost, getCategories, getLastCategory, getPostForEdit, updatePost, uploadImage } from '../api/endpoints';
+import {
+  createDraft,
+  createPost,
+  deleteDraft,
+  getCategories,
+  getDraft,
+  getDrafts,
+  getLastCategory,
+  getPostForEdit,
+  updateDraft,
+  updatePost,
+  uploadImage,
+} from '../api/endpoints';
 import { qk, useConfig } from '../api/queries';
-import type { Category, MeResponse, PostSaveRequest, UploadedImage, Visibility } from '../api/types';
+import type { Category, DraftSaveRequest, MeResponse, PostSaveRequest, UploadedImage, Visibility } from '../api/types';
 import { MarkdownView } from '../components/MarkdownView';
+import { Modal } from '../components/Modal';
 import { NotFound } from '../components/NotFound';
 import { RequireLogin } from '../components/RequireLogin';
 import { ErrorBox, FieldError, FormMessage, Loading } from '../components/Status';
 import { ALLOWED_IMAGE_TYPES } from '../lib/config';
+import { formatDateTime } from '../lib/format';
 import { useUnsavedChangesPrompt } from '../lib/useUnsavedChangesPrompt';
 import { isValidTag, normalizeTag } from '../lib/validation';
 import { POST, SOCIAL } from '../messages';
@@ -27,37 +41,65 @@ function NoBlog() {
   return <NotFound what="블로그" />;
 }
 
+/** 새 글. "/write?draft=ID"면 그 임시저장 글을 불러와 이어 쓴다. */
 function CreateLoader({ me }: { me: MeResponse }) {
   const blogId = me.blog?.id;
+  const [params] = useSearchParams();
+  const draftParam = Number(params.get('draft'));
+  const draftId = Number.isInteger(draftParam) && draftParam > 0 ? draftParam : null;
   const cats = useQuery({
     queryKey: qk.categories(blogId ?? 0),
     queryFn: () => getCategories(blogId as number),
     enabled: !!blogId,
   });
   const last = useQuery({ queryKey: qk.lastCategory, queryFn: getLastCategory, enabled: !!blogId, retry: false });
+  const draft = useQuery({
+    queryKey: qk.draft(draftId ?? 0),
+    queryFn: () => getDraft(draftId as number),
+    enabled: draftId !== null,
+    retry: false,
+    staleTime: Infinity,
+  });
   if (!blogId) return <NoBlog />;
-  if (cats.isPending || last.isPending) return <Loading />;
+  if (cats.isPending || last.isPending || (draftId !== null && draft.isPending)) return <Loading />;
   if (cats.error) return <ErrorBox error={cats.error} onRetry={() => void cats.refetch()} />;
+  if (draftId !== null && isNotFound(draft.error)) return <NotFound what="임시저장 글" />;
+  if (draft.error) return <ErrorBox error={draft.error} onRetry={() => void draft.refetch()} />;
 
   const categories = cats.data;
   const lastId = last.data?.categoryId;
   const defaultCat =
     categories.find((c) => c.id === lastId) ?? categories.find((c) => c.isDefault) ?? categories[0] ?? null;
+  const d = draftId !== null ? draft.data : undefined;
 
   return (
     <EditorForm
+      key={draftId ?? 'new'}
       mode="create"
       blogId={blogId}
       categories={categories}
-      initial={{
-        title: '',
-        body: '',
-        categoryId: defaultCat?.id ?? null,
-        visibility: 'PUBLIC',
-        tags: [],
-        images: [],
-        coverImageId: null,
-      }}
+      draftId={d?.id ?? null}
+      initial={
+        d
+          ? {
+              title: d.title,
+              body: d.body,
+              categoryId: d.categoryId ?? defaultCat?.id ?? null,
+              visibility: d.visibility,
+              tags: d.tags,
+              images: d.images,
+              coverImageId: d.coverImageId,
+            }
+          : {
+              title: '',
+              body: '',
+              categoryId: defaultCat?.id ?? null,
+              visibility: 'PUBLIC',
+              tags: [],
+              images: [],
+              coverImageId: null,
+            }
+      }
     />
   );
 }
@@ -110,6 +152,8 @@ interface EditorInitial {
 interface EditorFormProps {
   mode: 'create' | 'edit';
   postId?: number;
+  /** 이어 쓰는 임시저장 글 (새 글에서만) */
+  draftId?: number | null;
   blogId: number;
   categories: Category[];
   initial: EditorInitial;
@@ -118,10 +162,10 @@ interface EditorFormProps {
 type FieldKey = 'title' | 'body' | 'categoryId' | 'tags';
 
 /** 글쓰기·수정 (CF-05, CF-13-6, CF-20, CF-22) */
-function EditorForm({ mode, postId, blogId, categories, initial }: EditorFormProps) {
+function EditorForm({ mode, postId, draftId: initialDraftId = null, blogId, categories, initial }: EditorFormProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { limits } = useConfig();
+  const { limits, draftLimit, draftAutosaveSeconds } = useConfig();
   const ids = { title: useId(), body: useId(), category: useId(), tag: useId(), file: useId() };
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -144,17 +188,83 @@ function EditorForm({ mode, postId, blogId, categories, initial }: EditorFormPro
   const [uploading, setUploading] = useState(false);
   const busy = useRef(false);
 
-  const dirty =
-    title !== initial.title ||
-    body !== initial.body ||
-    categoryId !== initial.categoryId ||
-    visibility !== initial.visibility ||
-    tags.join('\u0000') !== initial.tags.join('\u0000') ||
-    coverImageId !== initial.coverImageId ||
-    tagInput.trim() !== '';
+  /* ---------- 임시저장 (새 글에서만) ---------- */
+  const canDraft = mode === 'create';
+  const [draftId, setDraftId] = useState<number | null>(initialDraftId);
+  const [draftState, setDraftState] = useState<string | null>(null);
+  const [draftsOpen, setDraftsOpen] = useState(false);
+  const draftBusy = useRef(false);
+  const drafts = useQuery({ queryKey: qk.drafts, queryFn: getDrafts, enabled: canDraft });
+
+  // 마지막으로 저장한(또는 불러온) 내용. 이것과 다르면 "저장하지 않은 내용"이다
+  const snapshotOf = (v: { title: string; body: string; categoryId: number | null; visibility: Visibility; tags: string[]; coverImageId: number | null }) =>
+    JSON.stringify([v.title, v.body, v.categoryId, v.visibility, v.tags, v.coverImageId]);
+  const snapshot = snapshotOf({ title, body, categoryId, visibility, tags, coverImageId });
+  const [savedSnapshot, setSavedSnapshot] = useState(() => snapshotOf(initial));
+
+  const dirty = snapshot !== savedSnapshot || tagInput.trim() !== '';
   const allowNavigation = useUnsavedChangesPrompt(dirty);
 
   const usedImages = images.filter((img) => body.includes(img.url));
+
+  const saveDraft = async (auto: boolean) => {
+    if (!canDraft || draftBusy.current || busy.current) return;
+    if (!title.trim() && !body.trim()) {
+      if (!auto) setFormError(POST.draftEmpty);
+      return;
+    }
+    if (auto && snapshot === savedSnapshot) return; // 바뀐 게 없으면 자동 저장은 건너뛴다
+    const usedIds = usedImages.map((i) => i.id);
+    const req: DraftSaveRequest = {
+      title,
+      body,
+      categoryId,
+      visibility,
+      tags,
+      imageIds: usedIds,
+      coverImageId: coverImageId !== null && usedIds.includes(coverImageId) ? coverImageId : null,
+    };
+    const sent = snapshot;
+    draftBusy.current = true;
+    try {
+      const res = draftId === null ? await createDraft(req) : await updateDraft(draftId, req);
+      if (draftId === null) {
+        setDraftId(res.id);
+        // 새로고침해도 이어 쓸 수 있게 주소에 남긴다 (화면은 다시 그리지 않는다)
+        window.history.replaceState(window.history.state, '', `/write?draft=${res.id}`);
+      }
+      setSavedSnapshot(sent);
+      setDraftState(POST.draftSaved(formatDateTime(res.updatedAt).slice(-5), auto));
+      if (!auto) setFormError(null);
+      void queryClient.invalidateQueries({ queryKey: qk.drafts });
+    } catch (err) {
+      if (!auto) setFormError(isApiError(err) && err.fields.body ? err.fields.body : errorMessage(err));
+    } finally {
+      draftBusy.current = false;
+    }
+  };
+
+  // 바뀐 게 있으면 정해진 간격마다 자동 임시저장
+  const saveDraftRef = useRef(saveDraft);
+  useEffect(() => {
+    saveDraftRef.current = saveDraft;
+  });
+  useEffect(() => {
+    if (!canDraft || draftAutosaveSeconds <= 0) return;
+    const timer = window.setInterval(() => void saveDraftRef.current(true), draftAutosaveSeconds * 1000);
+    return () => window.clearInterval(timer);
+  }, [canDraft, draftAutosaveSeconds]);
+
+  const removeDraft = async (id: number) => {
+    if (!window.confirm(POST.draftDeleteConfirm)) return;
+    try {
+      await deleteDraft(id);
+      if (id === draftId) setDraftId(null);
+      void queryClient.invalidateQueries({ queryKey: qk.drafts });
+    } catch (err) {
+      setFormError(errorMessage(err));
+    }
+  };
 
   /* ---------- 태그 ---------- */
   const addTag = (raw: string): boolean => {
@@ -281,6 +391,7 @@ function EditorForm({ mode, postId, blogId, categories, initial }: EditorFormPro
       tags: finalTags,
       imageIds,
       coverImageId: coverImageId !== null && imageIds.includes(coverImageId) ? coverImageId : null,
+      ...(mode === 'create' && draftId !== null ? { draftId } : {}),
     };
 
     busy.current = true;
@@ -299,6 +410,7 @@ function EditorForm({ mode, postId, blogId, categories, initial }: EditorFormPro
       void queryClient.invalidateQueries({ queryKey: ['manage'] });
       void queryClient.invalidateQueries({ queryKey: qk.lastCategory });
       void queryClient.invalidateQueries({ queryKey: qk.home });
+      void queryClient.invalidateQueries({ queryKey: qk.drafts });
       allowNavigation();
       navigate(`/posts/${id}`, { replace: mode === 'edit' });
     } catch (err) {
@@ -323,6 +435,19 @@ function EditorForm({ mode, postId, blogId, categories, initial }: EditorFormPro
       <div className="editor__head">
         <h1 className="page-title">{mode === 'edit' ? '글 수정' : '글쓰기'}</h1>
         <div className="editor__actions">
+          {canDraft && (
+            <>
+              <span className="muted editor__draft-state" aria-live="polite">
+                {draftState}
+              </span>
+              <button type="button" className="btn btn--ghost" onClick={() => setDraftsOpen(true)}>
+                임시저장 글 <b>{drafts.data?.items.length ?? 0}</b>
+              </button>
+              <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void saveDraft(false)}>
+                임시저장
+              </button>
+            </>
+          )}
           <button type="button" className="btn btn--ghost" onClick={() => navigate(-1)}>
             취소
           </button>
@@ -488,6 +613,35 @@ function EditorForm({ mode, postId, blogId, categories, initial }: EditorFormPro
         </div>
         <FieldError message={tagError ?? errors.tags} />
       </div>
+
+      {draftsOpen && (
+        <Modal title={`임시저장 글 ${drafts.data?.items.length ?? 0}/${drafts.data?.limit ?? draftLimit}`} onClose={() => setDraftsOpen(false)}>
+          {drafts.isPending ? (
+            <Loading />
+          ) : drafts.error ? (
+            <ErrorBox error={drafts.error} onRetry={() => void drafts.refetch()} />
+          ) : drafts.data.items.length === 0 ? (
+            <p className="muted">{POST.draftNone}</p>
+          ) : (
+            <ul className="draft-list">
+              {drafts.data.items.map((d) => (
+                <li key={d.id} className={`draft-list__item${d.id === draftId ? ' is-current' : ''}`}>
+                  <Link to={`/write?draft=${d.id}`} className="draft-list__open" onClick={() => setDraftsOpen(false)}>
+                    <b>{d.title || POST.draftNoTitle}</b>
+                    {d.preview && <span className="draft-list__preview">{d.preview}</span>}
+                    <time className="muted" dateTime={d.updatedAt}>
+                      {formatDateTime(d.updatedAt)}
+                    </time>
+                  </Link>
+                  <button type="button" className="link-btn link-btn--danger" onClick={() => void removeDraft(d.id)}>
+                    삭제
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Modal>
+      )}
 
       <FormMessage kind="error" message={formError} />
       <div className="editor__bottom">

@@ -43,6 +43,12 @@ public final class Messages {
     public static final String TITLE_TOO_LONG = "제목은 100자 이하로 입력해 주세요";
     public static final String BODY_REQUIRED = "본문을 입력해 주세요";
     public static final String BODY_TOO_LONG = "본문은 10,000자 이하로 입력해 주세요";
+    public static final String DRAFT_EMPTY = "제목이나 본문을 입력하면 임시저장할 수 있습니다";
+    public static final String DRAFT_NOT_FOUND = "존재하지 않는 임시저장 글입니다";
+
+    public static String draftLimit(int max) {
+        return "임시저장은 " + max + "개까지 할 수 있습니다. 쓰지 않는 임시저장 글을 지워 주세요";
+    }
     public static final String CATEGORY_REQUIRED = "분류를 선택해 주세요";
     public static final String POST_NOT_FOUND = "존재하지 않는 글입니다";
     public static final String BLOG_NOT_FOUND = "존재하지 않는 블로그입니다";

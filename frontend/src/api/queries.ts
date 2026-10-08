@@ -21,6 +21,8 @@ export const qk = {
   search: (q: string, type: string, page: number) => ['search', q, type, page] as const,
   myProfile: ['myProfile'] as const,
   lastCategory: ['lastCategory'] as const,
+  drafts: ['drafts'] as const,
+  draft: (id: number) => ['drafts', id] as const,
   dashboard: ['manage', 'dashboard'] as const,
   managePosts: (visibility: string, categoryId: string, page: number) =>
     ['manage', 'posts', visibility, categoryId, page] as const,

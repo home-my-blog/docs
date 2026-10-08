@@ -56,6 +56,10 @@ export interface AppConfig {
   };
   pageSize: number;
   trendingIntervalSeconds: number;
+  /** 회원별 임시저장 최대 개수 */
+  draftLimit: number;
+  /** 글쓰기 중 자동 임시저장 간격(초). 0이면 끔 */
+  draftAutosaveSeconds: number;
   topics: Topic[];
 }
 
@@ -254,6 +258,44 @@ export interface PostSaveRequest {
   tags: string[];
   imageIds: number[];
   coverImageId?: number | null;
+  /** 임시저장 글을 이어 써서 올릴 때. 올리면 그 임시저장 글은 지워진다 */
+  draftId?: number;
+}
+
+/* ---------- 임시저장 (CF-05) ---------- */
+
+export interface DraftSummary {
+  id: number;
+  title: string;
+  preview: string;
+  updatedAt: ISODateString;
+}
+
+export interface DraftList {
+  items: DraftSummary[];
+  limit: number;
+}
+
+export interface Draft {
+  id: number;
+  title: string;
+  body: string;
+  categoryId: number | null;
+  visibility: Visibility;
+  tags: string[];
+  images: UploadedImage[];
+  coverImageId: number | null;
+  updatedAt: ISODateString;
+}
+
+export interface DraftSaveRequest {
+  title: string;
+  body: string;
+  categoryId: number | null;
+  visibility: Visibility;
+  tags: string[];
+  imageIds: number[];
+  coverImageId: number | null;
 }
 
 /* ---------- 소통 ---------- */

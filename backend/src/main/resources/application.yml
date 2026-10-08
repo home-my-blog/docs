@@ -77,6 +77,9 @@ myblog:
     default-topic: hobby
     default-category-name: 미분류
     color-count: 8
+  draft:
+    max-per-member: 20       # 임시저장 글은 회원별 20개까지
+    autosave-interval: 60s   # 글쓰기 중 바뀐 게 있으면 60초마다 자동 임시저장 (0s면 끔)
   post:
     title-max: 100
     body-max: 10000

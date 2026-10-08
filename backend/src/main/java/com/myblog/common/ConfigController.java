@@ -44,6 +44,8 @@ public class ConfigController {
         m.put("limits", limits);
         m.put("pageSize", props.post().pageSize());
         m.put("trendingIntervalSeconds", props.trending().interval().toSeconds());
+        m.put("draftLimit", props.draft().maxPerMember());
+        m.put("draftAutosaveSeconds", props.draft().autosaveInterval().toSeconds());
         m.put("topics", topics.list());
         return m;
     }

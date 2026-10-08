@@ -996,3 +996,43 @@ ol.rank-list li a {
 .mcomment__post:hover {
   text-decoration: underline;
 }
+
+/* 임시저장 (CF-05) */
+.editor__draft-state {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.draft-list {
+  display: flex;
+  flex-direction: column;
+}
+.draft-list__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-3);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.draft-list__item:last-child {
+  border-bottom: 0;
+}
+.draft-list__item.is-current .draft-list__open b {
+  color: var(--accent);
+}
+.draft-list__open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+.draft-list__preview {
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.draft-list__open time {
+  font-size: 0.78rem;
+}

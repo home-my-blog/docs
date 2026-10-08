@@ -7,6 +7,9 @@ import type {
   Category,
   Comment,
   DashboardResponse,
+  Draft,
+  DraftList,
+  DraftSaveRequest,
   HomeResponse,
   LikeResponse,
   ManageCommentItem,
@@ -100,6 +103,13 @@ export const updatePost = (id: number, body: PostSaveRequest) =>
   api<void>(`/api/posts/${id}`, { method: 'PUT', body });
 export const deletePost = (id: number) => api<void>(`/api/posts/${id}`, { method: 'DELETE' });
 export const getLastCategory = () => api<{ categoryId: number | null }>('/api/me/last-category');
+export const getDrafts = () => api<DraftList>('/api/me/drafts');
+export const getDraft = (id: number) => api<Draft>(`/api/me/drafts/${id}`);
+export const createDraft = (body: DraftSaveRequest) =>
+  api<{ id: number; updatedAt: string }>('/api/me/drafts', { method: 'POST', body });
+export const updateDraft = (id: number, body: DraftSaveRequest) =>
+  api<{ id: number; updatedAt: string }>(`/api/me/drafts/${id}`, { method: 'PUT', body });
+export const deleteDraft = (id: number) => api<void>(`/api/me/drafts/${id}`, { method: 'DELETE' });
 export const getTagPosts = (name: string, page: number) =>
   api<Page<PostSummary>>(`/api/tags/${encodeURIComponent(name)}/posts`, { query: { page } });
 
