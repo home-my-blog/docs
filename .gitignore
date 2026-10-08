@@ -9,3 +9,4 @@ dist/
 backend/data/
 test-results/
 playwright-report/
+dump.rdb
