@@ -146,7 +146,7 @@ export function CommentSection({ post }: { post: PostDetail }) {
       ) : (
         <div className="comment-login">
           <p>{SOCIAL.commentLoginRequired}</p>
-          <button type="button" className="btn btn--primary btn--sm" onClick={() => openLogin()}>
+          <button type="button" className="btn btn--sm" onClick={() => openLogin()}>
             로그인
           </button>
         </div>
