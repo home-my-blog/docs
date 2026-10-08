@@ -32,7 +32,7 @@ export function TagPostsPage() {
         <Empty>{EXPLORE.emptyList}</Empty>
       ) : (
         <>
-          <div className="card-grid card-grid--2">
+          <div className="post-rows">
             {data.items.map((p) => (
               <PostCard key={p.id} post={p} />
             ))}

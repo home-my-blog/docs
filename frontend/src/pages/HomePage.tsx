@@ -41,7 +41,7 @@ export function HomePage() {
           {data.latestPosts.length === 0 ? (
             <Empty>{COMMON.noPosts}</Empty>
           ) : (
-            <div className="card-grid card-grid--2">
+            <div className="post-rows">
               {data.latestPosts.slice(0, 6).map((p) => (
                 <PostCard key={p.id} post={p} />
               ))}

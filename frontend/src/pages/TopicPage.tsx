@@ -48,7 +48,7 @@ export function TopicPage() {
         {data.posts.length === 0 ? (
           <Empty>{COMMON.noPosts}</Empty>
         ) : (
-          <div className="card-grid card-grid--3">
+          <div className="post-rows">
             {data.posts.slice(0, 9).map((p) => (
               <PostCard key={p.id} post={p} />
             ))}

@@ -57,7 +57,7 @@ export function minutesUntil(iso: string, now: number): number {
 }
 
 /** 분류 색 점 (BM-04-3: 정해진 순서로 자동 배정) */
-export const CATEGORY_COLORS = ['#f25c2b', '#2b8af2', '#22a06b', '#a855f7', '#e5a50a', '#ec4899', '#0ea5a4', '#64748b'];
+export const CATEGORY_COLORS = ['#f7c59f', '#a9cbef', '#a8dcc9', '#c7b8ea', '#f3e09a', '#f4b6c2', '#c5d6a0', '#d5dae2'];
 export function categoryColor(index: number | undefined): string {
   const i = index ?? 0;
   return CATEGORY_COLORS[((i % CATEGORY_COLORS.length) + CATEGORY_COLORS.length) % CATEGORY_COLORS.length];

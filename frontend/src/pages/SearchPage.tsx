@@ -150,7 +150,7 @@ function Results({
           {data.posts.items.length === 0 ? (
             <Empty>{EXPLORE.searchNoResult}</Empty>
           ) : (
-            <div className="stack">
+            <div className="post-rows">
               {data.posts.items.map((p) => (
                 <PostCard key={p.id} post={p} />
               ))}
