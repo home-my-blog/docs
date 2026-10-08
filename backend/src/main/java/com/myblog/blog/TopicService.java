@@ -18,12 +18,12 @@ public class TopicService {
     }
 
     public List<Topic> list() {
-        return jdbc.sql("SELECT id, code, name, description FROM topic ORDER BY sort_order")
+        return jdbc.sql("SELECT id, code, name, description FROM topics ORDER BY sort_order")
                 .query(Topic.class).list();
     }
 
     public Topic byCode(String code) {
-        return jdbc.sql("SELECT id, code, name, description FROM topic WHERE code = ?").param(code)
+        return jdbc.sql("SELECT id, code, name, description FROM topics WHERE code = ?").param(code)
                 .query(Topic.class).optional().orElseThrow(() -> new ApiException(ErrorCode.TOPIC_NOT_FOUND));
     }
 }

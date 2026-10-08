@@ -101,7 +101,7 @@ public class PostCommandService {
         Long cover = cover(req, memberId);
         var keys = new GeneratedKeyHolder();
         jdbc.sql("""
-                INSERT INTO post (blog_id, author_id, category_id, title, body, visibility, cover_image_id, created_at)
+                INSERT INTO posts (blog_id, author_id, category_id, title, body, visibility, cover_image_id, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)""")
                 .params(blogId, memberId, v.categoryId(), v.title(), v.body(), v.visibility(), cover,
                         clock.nowOffset())
@@ -122,7 +122,7 @@ public class PostCommandService {
                 || p.categoryId() != v.categoryId() || !p.visibility().equals(v.visibility());
         OffsetDateTime updatedAt = changed ? clock.nowOffset() : p.contentUpdatedAt();
         jdbc.sql("""
-                UPDATE post SET title = ?, body = ?, category_id = ?, visibility = ?, cover_image_id = ?,
+                UPDATE posts SET title = ?, body = ?, category_id = ?, visibility = ?, cover_image_id = ?,
                                 content_updated_at = ?
                 WHERE id = ?""")
                 .params(v.title(), v.body(), v.categoryId(), v.visibility(), cover, updatedAt, postId).update();
@@ -136,7 +136,7 @@ public class PostCommandService {
     public long delete(long postId, long memberId) {
         var p = queries.requireAuthor(postId, memberId);
         List<String> keys = images.keysOfPost(postId);
-        jdbc.sql("DELETE FROM post WHERE id = ?").param(postId).update();
+        jdbc.sql("DELETE FROM posts WHERE id = ?").param(postId).update();
         images.deleteFilesAfterCommit(keys);
         return p.blogId();
     }
@@ -145,9 +145,9 @@ public class PostCommandService {
     public Map<String, Long> lastCategory(long memberId) {
         long blogId = blogs.requireOwnBlogId(memberId);
         Long id = jdbc.sql("""
-                SELECT category_id FROM post WHERE blog_id = ? ORDER BY created_at DESC, id DESC LIMIT 1""")
+                SELECT category_id FROM posts WHERE blog_id = ? ORDER BY created_at DESC, id DESC LIMIT 1""")
                 .param(blogId).query(Long.class).optional()
-                .orElseGet(() -> jdbc.sql("SELECT id FROM category WHERE blog_id = ? AND is_default")
+                .orElseGet(() -> jdbc.sql("SELECT id FROM categories WHERE blog_id = ? AND is_default")
                         .param(blogId).query(Long.class).single());
         return Map.of("categoryId", id);
     }

@@ -60,19 +60,19 @@ public class TrendingService {
         }
         OffsetDateTime sinceOffset = OffsetDateTime.ofInstant(since, KoreanClock.SEOUL);
         Map<String, Long> searches = new HashMap<>();
-        jdbc.sql("SELECT keyword, count(*) AS c FROM search_log WHERE searched_at >= ? GROUP BY keyword")
+        jdbc.sql("SELECT keyword, count(*) AS c FROM search_logs WHERE searched_at >= ? GROUP BY keyword")
                 .param(sinceOffset).query((rs, i) -> searches.put(rs.getString("keyword"), rs.getLong("c"))).list();
 
         Map<Long, Long> viewsByPost = new HashMap<>();
         recentViews.forEach(v -> viewsByPost.merge(v.postId(), 1L, Long::sum));
         Map<Long, String> titles = new HashMap<>();
         if (!viewsByPost.isEmpty()) {
-            jdbc.sql("SELECT id, lower(title) AS t FROM post WHERE visibility = 'PUBLIC' AND id IN (:ids)")
+            jdbc.sql("SELECT id, lower(title) AS t FROM posts WHERE visibility = 'PUBLIC' AND id IN (:ids)")
                     .param("ids", viewsByPost.keySet())
                     .query((rs, i) -> titles.put(rs.getLong("id"), rs.getString("t"))).list();
         }
         List<String[]> commented = jdbc.sql("""
-                SELECT lower(p.title) AS t FROM comment cm JOIN post p ON p.id = cm.post_id
+                SELECT lower(p.title) AS t FROM comments cm JOIN posts p ON p.id = cm.post_id
                 WHERE cm.created_at >= ? AND p.visibility = 'PUBLIC'""").param(sinceOffset)
                 .query((rs, i) -> new String[] {rs.getString("t")}).list();
 

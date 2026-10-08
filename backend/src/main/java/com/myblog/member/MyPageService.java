@@ -118,11 +118,11 @@ public class MyPageService {
         }
         login.verifyPassword(m, req.password(), ErrorCode.CURRENT_PASSWORD_MISMATCH);
         List<String> keys = jdbc.sql("""
-                SELECT storage_key FROM post_image
-                WHERE uploader_id = ? OR post_id IN (SELECT id FROM post WHERE author_id = ?)""")
+                SELECT storage_key FROM post_images
+                WHERE uploader_id = ? OR post_id IN (SELECT id FROM posts WHERE author_id = ?)""")
                 .params(memberId, memberId).query(String.class).list();
-        jdbc.sql("DELETE FROM post WHERE author_id = ?").param(memberId).update(); // 분류 RESTRICT보다 먼저
-        jdbc.sql("DELETE FROM blog WHERE owner_id = ?").param(memberId).update();
+        jdbc.sql("DELETE FROM posts WHERE author_id = ?").param(memberId).update(); // 분류 RESTRICT보다 먼저
+        jdbc.sql("DELETE FROM blogs WHERE owner_id = ?").param(memberId).update();
         members.delete(memberId);
         images.deleteFilesAfterCommit(keys);
         sessions.expireAll(memberId, null);

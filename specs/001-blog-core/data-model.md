@@ -3,22 +3,26 @@
 PostgreSQL 16 기준. 모든 표의 기본 키는 `id bigint generated always as identity`이고, 시각 칸은
 `timestamptz`(UTC 저장, 화면은 Asia/Seoul). Flyway 마이그레이션으로 만든다. 괄호는 원본 요구사항 ID.
 
+표 이름은 복수형으로 바꿨다(2026-10-08, 팀 리뷰). `post_report`는 `post_flags`로 바꿨다 — "report"가
+'보고서'로 읽혀서 신고는 "flag"로 부른다. 칸 이름(`post_id`, `member_id` 등)은 그대로다. V1은 손대지 않고
+`V2__plural_table_names.sql`에서 표·제약·인덱스·시퀀스 이름만 바꾼다.
+
 ## 관계 한눈에 보기
 
 ```text
-member 1 ── 1 blog N ── 1 topic
+members 1 ── 1 blogs N ── 1 topics
    │          │
-   │          ├── N category
-   │          └── N post ── N comment (author → member, NULL 가능)
-   │                 ├── N post_like (member)
-   │                 ├── N post_tag N ── 1 tag
-   │                 ├── N post_report (member)
-   │                 └── N post_image
+   │          ├── N categories
+   │          └── N posts ── N comments (author → members, NULL 가능)
+   │                 ├── N post_likes (members)
+   │                 ├── N post_tags N ── 1 tags
+   │                 ├── N post_flags (members)
+   │                 └── N post_images
 
-daily_stat (blog, post NULL 가능, date)     search_log (keyword, time)
+daily_stats (blogs, posts NULL 가능, date)     search_logs (keyword, time)
 ```
 
-## member (회원) — CF-01, CF-02, CF-15
+## members (회원) — CF-01, CF-02, CF-15
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
@@ -43,7 +47,7 @@ daily_stat (blog, post NULL 가능, date)     search_log (keyword, time)
 세션 표는 뺐다(2026-10-08). 로그인 세션은 서버 메모리에 두고, Spring Security `SessionRegistry`로 회원별
 세션을 찾아 끊는다(CF-15-15, CF-25-8). 최대 비활성 7일, 쓸 때마다 쿠키 만료를 늘린다.
 
-## topic (주제) — 요구사항.md 1장, 3.3
+## topics (주제) — 요구사항.md 1장, 3.3
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
@@ -54,12 +58,12 @@ daily_stat (blog, post NULL 가능, date)     search_log (keyword, time)
 
 시드: travel 여행, food 음식, hobby 취미, exercise 운동, dev 개발. 목록만 고치면 늘리거나 줄일 수 있다.
 
-## blog (블로그) — CF-03, CF-04, BM-05, BM-07
+## blogs (블로그) — CF-03, CF-04, BM-05, BM-07
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
-| owner_id | bigint → member | NOT NULL, `UNIQUE`(1인 1블로그, CF-03-1), ON DELETE CASCADE |
-| topic_id | bigint → topic | NOT NULL. 기본 `hobby` (spec Assumptions) |
+| owner_id | bigint → members | NOT NULL, `UNIQUE`(1인 1블로그, CF-03-1), ON DELETE CASCADE |
+| topic_id | bigint → topics | NOT NULL. 기본 `hobby` (spec Assumptions) |
 | name | varchar(30) | NOT NULL. 1~30자, 앞뒤 공백 제거. 기본 "{닉네임}의 블로그" (CF-03-2, CF-04-1) |
 | description | varchar(200) | NOT NULL DEFAULT ''. 0~200자 (CF-04-2) |
 | about | text | NOT NULL DEFAULT ''. 소개 화면의 소개 글 (요구사항.md 3.6) |
@@ -67,34 +71,34 @@ daily_stat (blog, post NULL 가능, date)     search_log (keyword, time)
 | created_at, updated_at | timestamptz | NOT NULL |
 
 - 나중에 1인 여러 블로그로 늘릴 때는 `owner_id`의 `UNIQUE`만 없앤다 (03-코어 '구현 방식').
-- 블로그 소개 화면의 "주인 이름·한 줄 소개"는 `member.nickname`, `member.bio`를 쓴다.
+- 블로그 소개 화면의 "주인 이름·한 줄 소개"는 `members.nickname`, `members.bio`를 쓴다.
 
-## category (분류) — CF-07, CF-08, BM-04
+## categories (분류) — CF-07, CF-08, BM-04
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
-| blog_id | bigint → blog | NOT NULL, ON DELETE CASCADE |
+| blog_id | bigint → blogs | NOT NULL, ON DELETE CASCADE |
 | name | varchar(20) | NOT NULL. 1~20자, 앞뒤 공백 제거 (CF-08-2) |
 | name_key | varchar(20) | NOT NULL. `lower(name)`. `UNIQUE (blog_id, name_key)` |
 | sort_order | int | NOT NULL. 추가하면 맨 아래(최댓값+1) (CF-08-3, 5) |
 | is_default | boolean | NOT NULL DEFAULT false. "미분류" 하나만 true (CF-03-3, CF-08-8) |
 | color_index | int | NOT NULL. 정해진 색 목록에서 순서대로 자동 배정 (BM-04-3) |
 
-- `post.category_id`의 FK를 `ON DELETE RESTRICT`로 둬서, 글이 있는 분류는 DB에서도 지울 수 없다(CF-08-6).
+- `posts.category_id`의 FK를 `ON DELETE RESTRICT`로 둬서, 글이 있는 분류는 DB에서도 지울 수 없다(CF-08-6).
 - `is_default = true`인 분류는 서비스에서 삭제를 거절한다. 부분 고유 인덱스
   `UNIQUE (blog_id) WHERE is_default`로 블로그당 하나만 허용한다.
 
-## post (글) — CF-05, CF-06, CF-09, CF-13
+## posts (글) — CF-05, CF-06, CF-09, CF-13
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
-| blog_id | bigint → blog | NOT NULL, ON DELETE CASCADE |
-| author_id | bigint → member | NOT NULL. 1인 1블로그라 블로그 주인과 같다 (CF-12) |
-| category_id | bigint → category | NOT NULL, ON DELETE RESTRICT (CF-07-1, CF-08-6) |
+| blog_id | bigint → blogs | NOT NULL, ON DELETE CASCADE |
+| author_id | bigint → members | NOT NULL. 1인 1블로그라 블로그 주인과 같다 (CF-12) |
+| category_id | bigint → categories | NOT NULL, ON DELETE RESTRICT (CF-07-1, CF-08-6) |
 | title | varchar(100) | NOT NULL. 1~100자, 앞뒤 공백 제거, 공백만은 빈 값 (CF-05-3) |
 | body | text | NOT NULL. 1~10,000자, 마크다운 원문 (CF-05-4, CF-06) |
 | visibility | varchar(10) | NOT NULL DEFAULT 'PUBLIC'. `CHECK IN ('PUBLIC','PRIVATE')` (CF-13-2) |
-| cover_image_id | bigint → post_image | NULL. 대표 사진 (요구사항.md 3.2, 3.5) |
+| cover_image_id | bigint → post_images | NULL. 대표 사진 (요구사항.md 3.2, 3.5) |
 | featured | boolean | NOT NULL DEFAULT false. 오늘의 이슈 (research §12) |
 | view_count | bigint | NOT NULL DEFAULT 0. 글별 누적 조회수 (BM-06-7) |
 | created_at | timestamptz | NOT NULL. 작성 시각, 바꾸지 않음 (CF-05-7) |
@@ -110,45 +114,45 @@ daily_stat (blog, post NULL 가능, date)     search_log (keyword, time)
 - 홈·주제·검색·인기 글·태그 목록·이전/다음 글은 viewer가 있어도 공개 글만 쓴다(원본 규칙). 내 블로그 목록과
   글 관리만 본인 비공개 글을 포함한다 (CF-10-6, BM-03-1).
 
-## tag, post_tag (태그) — CF-20
+## tags, post_tags (태그) — CF-20
 
 | 표.칸 | 타입 | 제약 / 규칙 |
 |-------|------|-------------|
-| tag.name | varchar(15) | NOT NULL. 1~15자, 공백·쉼표 불가, 앞의 `#` 제거 (CF-20-2) |
-| tag.name_key | varchar(15) | NOT NULL `UNIQUE`. `lower(name)` |
-| post_tag.post_id | bigint → post | PK 일부, ON DELETE CASCADE |
-| post_tag.tag_id | bigint → tag | PK 일부 |
+| tags.name | varchar(15) | NOT NULL. 1~15자, 공백·쉼표 불가, 앞의 `#` 제거 (CF-20-2) |
+| tags.name_key | varchar(15) | NOT NULL `UNIQUE`. `lower(name)` |
+| post_tags.post_id | bigint → posts | PK 일부, ON DELETE CASCADE |
+| post_tags.tag_id | bigint → tags | PK 일부 |
 
 - 글당 최대 5개(서비스 검사, CF-20-1). 같은 글에 같은 `name_key` 불가(PK가 막음).
 
-## post_like (좋아요) — CF-19
+## post_likes (좋아요) — CF-19
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
-| post_id | bigint → post | ON DELETE CASCADE |
-| member_id | bigint → member | ON DELETE CASCADE |
+| post_id | bigint → posts | ON DELETE CASCADE |
+| member_id | bigint → members | ON DELETE CASCADE |
 | created_at | timestamptz | NOT NULL |
 
 `PRIMARY KEY (post_id, member_id)` (한 번만, CF-19-2). 자기 글은 서비스에서 거절 (CF-19-4).
 
-## post_report (신고) — CF-21
+## post_flags (신고, 이전 이름 post_report) — CF-21
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
-| post_id | bigint → post | ON DELETE CASCADE |
-| reporter_id | bigint → member | ON DELETE CASCADE |
+| post_id | bigint → posts | ON DELETE CASCADE |
+| reporter_id | bigint → members | ON DELETE CASCADE |
 | reason | varchar(20) | `CHECK IN ('SPAM','ABUSE','ADULT','OTHER')` (스팸 / 욕설·혐오 / 음란물 / 기타) |
 | detail | varchar(200) | NOT NULL DEFAULT ''. 기타일 때만 0~200자 |
 | created_at | timestamptz | NOT NULL |
 
 `UNIQUE (post_id, reporter_id)` (CF-21-3). 처리 칸은 관리자 기능과 함께 나중에 더한다 (CF-21-4).
 
-## post_image (글 이미지) — CF-22
+## post_images (글 이미지) — CF-22
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
-| post_id | bigint → post | NULL(업로드 직후, 글 저장 전), ON DELETE CASCADE |
-| uploader_id | bigint → member | NOT NULL, ON DELETE CASCADE |
+| post_id | bigint → posts | NULL(업로드 직후, 글 저장 전), ON DELETE CASCADE |
+| uploader_id | bigint → members | NOT NULL, ON DELETE CASCADE |
 | storage_key | varchar(200) | NOT NULL `UNIQUE`. `posts/{yyyy}/{MM}/{uuid}.{ext}` |
 | content_type | varchar(20) | `image/jpeg` · `image/png` · `image/gif` · `image/webp` |
 | size_bytes | int | 1 ~ 5,242,880 (CF-22-2) |
@@ -157,32 +161,32 @@ daily_stat (blog, post NULL 가능, date)     search_log (keyword, time)
 - 글 저장 시 본문에 쓰인 이미지 id들을 그 글에 연결하고, 글당 10장을 넘으면 거절한다 (CF-22-3).
 - `post_id IS NULL AND created_at < now - 24h`인 행과 파일은 스케줄러가 지운다.
 
-## comment (블로그 글 댓글) — CF-18, BM-05
+## comments (블로그 글 댓글) — CF-18, BM-05
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
-| post_id | bigint → post | NOT NULL, ON DELETE CASCADE (CF-18-6) |
-| author_id | bigint → member | NULL 가능, ON DELETE SET NULL → "탈퇴한 사용자" (CF-18-6) |
+| post_id | bigint → posts | NOT NULL, ON DELETE CASCADE (CF-18-6) |
+| author_id | bigint → members | NULL 가능, ON DELETE SET NULL → "탈퇴한 사용자" (CF-18-6) |
 | body | varchar(500) | NOT NULL. 1~500자, 공백만 불가, 줄바꿈 허용 (CF-18-2) |
 | created_at | timestamptz | NOT NULL |
 
-인덱스: `(post_id, created_at)`(글 상세, 오래된 순), `(created_at)` + post→blog 조인(댓글 관리, 새 댓글 수).
-새 댓글 수 = 내 블로그 글의 댓글 중 `created_at > blog.comments_seen_at AND author_id <> 블로그 주인`.
+인덱스: `(post_id, created_at)`(글 상세, 오래된 순), `(created_at)` + posts→blogs 조인(댓글 관리, 새 댓글 수).
+새 댓글 수 = 내 블로그 글의 댓글 중 `created_at > blogs.comments_seen_at AND author_id <> 블로그 주인`.
 
-## daily_stat (일별 통계) — BM-02, BM-06
+## daily_stats (일별 통계) — BM-02, BM-06
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|
-| blog_id | bigint → blog | NOT NULL, ON DELETE CASCADE |
-| post_id | bigint → post | NULL = 블로그 전체 행, ON DELETE CASCADE |
+| blog_id | bigint → blogs | NOT NULL, ON DELETE CASCADE |
+| post_id | bigint → posts | NULL = 블로그 전체 행, ON DELETE CASCADE |
 | stat_date | date | NOT NULL. 한국 시간 기준 날짜 (BM-06-6) |
 | views | int | NOT NULL DEFAULT 0 |
 | visitors | int | NOT NULL DEFAULT 0. 블로그 전체 행에서만 씀 |
 
 `UNIQUE NULLS NOT DISTINCT (blog_id, post_id, stat_date)`. 조회 시 `INSERT … ON CONFLICT DO UPDATE SET views = views + 1`.
-누적 숫자는 이 표의 합으로 구한다. 일별 댓글 수는 `comment.created_at`으로 센다 (BM-06-2).
+누적 숫자는 이 표의 합으로 구한다. 일별 댓글 수는 `comments.created_at`으로 센다 (BM-06-2).
 
-## search_log (검색 기록) — 요구사항.md 3.8
+## search_logs (검색 기록) — 요구사항.md 3.8
 
 | 칸 | 타입 | 제약 / 규칙 |
 |----|------|-------------|

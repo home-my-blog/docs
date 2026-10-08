@@ -28,12 +28,12 @@ class AuthFlowIT extends IntegrationTest {
     @Test
     void CF_03_2_signupCreatesBlogAndDefaultCategory_passwordHashed() throws Exception {
         long id = signup("수연", "Su@Example.com");
-        var member = jdbc.sql("SELECT email, password_hash FROM member WHERE id = ?").param(id).query().singleRow();
+        var member = jdbc.sql("SELECT email, password_hash FROM members WHERE id = ?").param(id).query().singleRow();
         assertThat(member.get("email")).isEqualTo("su@example.com");
         assertThat((String) member.get("password_hash")).startsWith("$2").doesNotContain(PASSWORD);
-        var blog = jdbc.sql("SELECT name FROM blog WHERE owner_id = ?").param(id).query(String.class).single();
+        var blog = jdbc.sql("SELECT name FROM blogs WHERE owner_id = ?").param(id).query(String.class).single();
         assertThat(blog).isEqualTo("수연의 블로그");
-        var cats = jdbc.sql("SELECT c.name FROM category c JOIN blog b ON b.id = c.blog_id WHERE b.owner_id = ? AND c.is_default")
+        var cats = jdbc.sql("SELECT c.name FROM categories c JOIN blogs b ON b.id = c.blog_id WHERE b.owner_id = ? AND c.is_default")
                 .param(id).query(String.class).list();
         assertThat(cats).containsExactly("미분류");
     }
@@ -127,9 +127,9 @@ class AuthFlowIT extends IntegrationTest {
         mvc.perform(postJson("/api/auth/login", Map.of("email", "su@example.com", "password", PASSWORD)))
                 .andExpect(jsonPath("$.error.code").value("ACCOUNT_LOCKED"));
         // 10분이 지나면 풀리고, 성공하면 카운트 0
-        jdbc.sql("UPDATE member SET locked_until = now() - interval '1 second'").update();
+        jdbc.sql("UPDATE members SET locked_until = now() - interval '1 second'").update();
         login("su@example.com", PASSWORD);
-        assertThat(jdbc.sql("SELECT failed_login_count FROM member").query(Integer.class).single()).isZero();
+        assertThat(jdbc.sql("SELECT failed_login_count FROM members").query(Integer.class).single()).isZero();
     }
 
     @Test
@@ -157,7 +157,7 @@ class AuthFlowIT extends IntegrationTest {
         signup("수연", "su@example.com");
         MockHttpSession old = login("su@example.com", PASSWORD);
         // 잠가 둔다
-        jdbc.sql("UPDATE member SET locked_until = now() + interval '10 minutes'").update();
+        jdbc.sql("UPDATE members SET locked_until = now() + interval '10 minutes'").update();
 
         // 가입되지 않은 이메일도 같은 응답, 메일은 안 감 (CF-25-3)
         mail.sent.clear();

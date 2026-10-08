@@ -31,11 +31,11 @@ public class InteractionService {
     }
 
     public long likeCount(long postId) {
-        return jdbc.sql("SELECT count(*) FROM post_like WHERE post_id = ?").param(postId).query(Long.class).single();
+        return jdbc.sql("SELECT count(*) FROM post_likes WHERE post_id = ?").param(postId).query(Long.class).single();
     }
 
     public boolean likedBy(long postId, Long memberId) {
-        return memberId != null && jdbc.sql("SELECT count(*) FROM post_like WHERE post_id = ? AND member_id = ?")
+        return memberId != null && jdbc.sql("SELECT count(*) FROM post_likes WHERE post_id = ? AND member_id = ?")
                 .params(postId, memberId).query(Long.class).single() > 0;
     }
 
@@ -46,10 +46,10 @@ public class InteractionService {
         if (p.authorId() == memberId) {
             throw new ApiException(ErrorCode.OWN_POST);
         }
-        int removed = jdbc.sql("DELETE FROM post_like WHERE post_id = ? AND member_id = ?")
+        int removed = jdbc.sql("DELETE FROM post_likes WHERE post_id = ? AND member_id = ?")
                 .params(postId, memberId).update();
         if (removed == 0) {
-            jdbc.sql("INSERT INTO post_like (post_id, member_id, created_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING")
+            jdbc.sql("INSERT INTO post_likes (post_id, member_id, created_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING")
                     .params(postId, memberId, clock.nowOffset()).update();
         }
         return Map.of("liked", removed == 0, "likeCount", likeCount(postId));
@@ -69,7 +69,7 @@ public class InteractionService {
             throw ApiException.field("detail", Messages.REPORT_DETAIL_TOO_LONG);
         }
         try {
-            jdbc.sql("INSERT INTO post_report (post_id, reporter_id, reason, detail, created_at) VALUES (?, ?, ?, ?, ?)")
+            jdbc.sql("INSERT INTO post_flags (post_id, reporter_id, reason, detail, created_at) VALUES (?, ?, ?, ?, ?)")
                     .params(postId, memberId, reason, detail, clock.nowOffset()).update();
         } catch (DuplicateKeyException e) {
             throw new ApiException(ErrorCode.ALREADY_REPORTED);

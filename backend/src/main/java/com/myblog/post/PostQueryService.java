@@ -35,11 +35,11 @@ public class PostQueryService {
             SELECT p.id, p.blog_id, b.name AS blog_name, p.author_id, p.category_id, c.name AS category_name,
                    t.code AS topic_code, t.name AS topic_name, p.title, p.body, p.visibility,
                    pi.storage_key AS cover_key, p.created_at, p.content_updated_at, p.view_count
-            FROM post p
-            JOIN blog b ON b.id = p.blog_id
-            JOIN topic t ON t.id = b.topic_id
-            JOIN category c ON c.id = p.category_id
-            LEFT JOIN post_image pi ON pi.id = p.cover_image_id
+            FROM posts p
+            JOIN blogs b ON b.id = p.blog_id
+            JOIN topics t ON t.id = b.topic_id
+            JOIN categories c ON c.id = p.category_id
+            LEFT JOIN post_images pi ON pi.id = p.cover_image_id
             """;
     private static final String ORDER = " ORDER BY p.created_at DESC, p.id DESC";
 
@@ -89,8 +89,8 @@ public class PostQueryService {
 
     private PageResponse<Map<String, Object>> page(String where, Map<String, Object> params, Integer page) {
         int size = props.post().pageSize();
-        long total = jdbc.sql("SELECT count(*) FROM post p JOIN blog b ON b.id = p.blog_id "
-                        + "JOIN topic t ON t.id = b.topic_id JOIN category c ON c.id = p.category_id WHERE " + where)
+        long total = jdbc.sql("SELECT count(*) FROM posts p JOIN blogs b ON b.id = p.blog_id "
+                        + "JOIN topics t ON t.id = b.topic_id JOIN categories c ON c.id = p.category_id WHERE " + where)
                 .params(params).query(Long.class).single();
         return PageRequests.page(page, size, total, (limit, offset) -> {
             Map<String, Object> all = new LinkedHashMap<>(params);
@@ -126,10 +126,10 @@ public class PostQueryService {
     /** 같은 블로그의 공개 글 중 바로 앞(이전, 더 오래된)·뒤(다음, 더 새로운) 글 (CF-09-2). */
     public Map<String, Optional<Neighbor>> neighbors(PostRow p) {
         var params = Map.<String, Object>of("blog", p.blogId(), "at", p.createdAt(), "id", p.id());
-        var prev = jdbc.sql("SELECT p.id, p.title FROM post p WHERE p.blog_id = :blog AND " + PUBLIC_ONLY
+        var prev = jdbc.sql("SELECT p.id, p.title FROM posts p WHERE p.blog_id = :blog AND " + PUBLIC_ONLY
                         + " AND (p.created_at, p.id) < (:at, :id) ORDER BY p.created_at DESC, p.id DESC LIMIT 1")
                 .params(params).query(Neighbor.class).optional();
-        var next = jdbc.sql("SELECT p.id, p.title FROM post p WHERE p.blog_id = :blog AND " + PUBLIC_ONLY
+        var next = jdbc.sql("SELECT p.id, p.title FROM posts p WHERE p.blog_id = :blog AND " + PUBLIC_ONLY
                         + " AND (p.created_at, p.id) > (:at, :id) ORDER BY p.created_at, p.id LIMIT 1")
                 .params(params).query(Neighbor.class).optional();
         return Map.of("prev", prev, "next", next);
@@ -143,7 +143,7 @@ public class PostQueryService {
 
     /** 태그별 공개 글 (CF-20-3). */
     public PageResponse<Map<String, Object>> tagPosts(String tagKey, Integer page) {
-        return page(PUBLIC_ONLY + " AND p.id IN (SELECT pt.post_id FROM post_tag pt JOIN tag g ON g.id = pt.tag_id"
+        return page(PUBLIC_ONLY + " AND p.id IN (SELECT pt.post_id FROM post_tags pt JOIN tags g ON g.id = pt.tag_id"
                 + " WHERE g.name_key = :tag)", Map.of("tag", tagKey), page);
     }
 
@@ -172,7 +172,7 @@ public class PostQueryService {
     }
 
     public long countPublicInTopic(long topicId) {
-        return jdbc.sql("SELECT count(*) FROM post p JOIN blog b ON b.id = p.blog_id WHERE " + PUBLIC_ONLY
+        return jdbc.sql("SELECT count(*) FROM posts p JOIN blogs b ON b.id = p.blog_id WHERE " + PUBLIC_ONLY
                 + " AND b.topic_id = :topic").param("topic", topicId).query(Long.class).single();
     }
 
@@ -185,7 +185,7 @@ public class PostQueryService {
             params.put("since", popularSince.toLocalDate());
             params.put("limit", limit - list.size());
             params.put("taken", taken.isEmpty() ? List.of(-1L) : taken);
-            jdbc.sql(SELECT + " LEFT JOIN (SELECT post_id, sum(views) AS v FROM daily_stat WHERE post_id IS NOT NULL"
+            jdbc.sql(SELECT + " LEFT JOIN (SELECT post_id, sum(views) AS v FROM daily_stats WHERE post_id IS NOT NULL"
                             + " AND stat_date >= :since GROUP BY post_id) s ON s.post_id = p.id WHERE " + PUBLIC_ONLY
                             + " AND p.id NOT IN (:taken) ORDER BY coalesce(s.v, 0) DESC, p.created_at DESC LIMIT :limit")
                     .params(params).query(PostRow.class).list().forEach(r -> list.add(summary(r)));
@@ -196,7 +196,7 @@ public class PostQueryService {
     /** 대시보드 인기 글: 최근 N일 조회수 많은 공개 글 (BM-02-3). */
     public List<Map<String, Object>> popularInBlog(long blogId, java.time.LocalDate since, int limit) {
         return jdbc.sql("""
-                SELECT p.id, p.title, sum(s.views) AS views FROM daily_stat s JOIN post p ON p.id = s.post_id
+                SELECT p.id, p.title, sum(s.views) AS views FROM daily_stats s JOIN posts p ON p.id = s.post_id
                 WHERE s.blog_id = :blog AND s.stat_date >= :since AND\s""" + PUBLIC_ONLY + """
 
                 GROUP BY p.id, p.title ORDER BY views DESC, p.id DESC LIMIT :limit""")

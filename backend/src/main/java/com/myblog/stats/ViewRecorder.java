@@ -54,7 +54,7 @@ public class ViewRecorder {
         boolean newVisitor = guard.optional(() -> redis.opsForValue()
                 .setIfAbsent("visit:" + post.blogId() + ":" + who + ":" + today, "1", clock.untilMidnight()))
                 .orElse(false);
-        jdbc.sql("UPDATE post SET view_count = view_count + 1 WHERE id = ?").param(post.id()).update();
+        jdbc.sql("UPDATE posts SET view_count = view_count + 1 WHERE id = ?").param(post.id()).update();
         upsert(post.blogId(), post.id(), today, 1, 0);
         upsert(post.blogId(), null, today, 1, newVisitor ? 1 : 0);
         trending.recordView(post.id());
@@ -62,9 +62,9 @@ public class ViewRecorder {
 
     private void upsert(long blogId, Long postId, java.time.LocalDate date, int views, int visitors) {
         jdbc.sql("""
-                INSERT INTO daily_stat (blog_id, post_id, stat_date, views, visitors) VALUES (?, ?, ?, ?, ?)
+                INSERT INTO daily_stats (blog_id, post_id, stat_date, views, visitors) VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT (blog_id, post_id, stat_date)
-                DO UPDATE SET views = daily_stat.views + EXCLUDED.views, visitors = daily_stat.visitors + EXCLUDED.visitors""")
+                DO UPDATE SET views = daily_stats.views + EXCLUDED.views, visitors = daily_stats.visitors + EXCLUDED.visitors""")
                 .params(blogId, postId, date, views, visitors).update();
     }
 }

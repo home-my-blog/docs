@@ -99,10 +99,10 @@ public class PostController {
         m.put("categoryId", p.categoryId());
         m.put("visibility", p.visibility());
         m.put("tags", tags.tagsOf(p.id()));
-        m.put("images", jdbc.sql("SELECT id, storage_key FROM post_image WHERE post_id = ? ORDER BY id")
+        m.put("images", jdbc.sql("SELECT id, storage_key FROM post_images WHERE post_id = ? ORDER BY id")
                 .param(p.id()).query((rs, i) -> Map.of("id", rs.getLong("id"),
                         "url", ImageService.url(rs.getString("storage_key")))).list());
-        m.put("coverImageId", jdbc.sql("SELECT cover_image_id FROM post WHERE id = ?").param(p.id())
+        m.put("coverImageId", jdbc.sql("SELECT cover_image_id FROM posts WHERE id = ?").param(p.id())
                 .query(Long.class).optional().orElse(null));
         return m;
     }

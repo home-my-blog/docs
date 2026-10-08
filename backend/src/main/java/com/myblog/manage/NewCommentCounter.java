@@ -14,7 +14,7 @@ public class NewCommentCounter {
 
     public long count(long blogId, long ownerId) {
         return jdbc.sql("""
-                SELECT count(*) FROM comment cm JOIN post p ON p.id = cm.post_id JOIN blog b ON b.id = p.blog_id
+                SELECT count(*) FROM comments cm JOIN posts p ON p.id = cm.post_id JOIN blogs b ON b.id = p.blog_id
                 WHERE b.id = ? AND cm.created_at > b.comments_seen_at AND cm.author_id IS DISTINCT FROM ?""")
                 .params(blogId, ownerId).query(Long.class).single();
     }

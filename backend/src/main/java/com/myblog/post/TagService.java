@@ -47,18 +47,18 @@ public class TagService {
     }
 
     public void replace(long postId, List<String> names) {
-        jdbc.sql("DELETE FROM post_tag WHERE post_id = ?").param(postId).update();
+        jdbc.sql("DELETE FROM post_tags WHERE post_id = ?").param(postId).update();
         for (String name : names) {
-            jdbc.sql("INSERT INTO tag (name, name_key) VALUES (?, ?) ON CONFLICT (name_key) DO NOTHING")
+            jdbc.sql("INSERT INTO tags (name, name_key) VALUES (?, ?) ON CONFLICT (name_key) DO NOTHING")
                     .params(name, key(name)).update();
-            jdbc.sql("INSERT INTO post_tag (post_id, tag_id) SELECT ?, id FROM tag WHERE name_key = ?")
+            jdbc.sql("INSERT INTO post_tags (post_id, tag_id) SELECT ?, id FROM tags WHERE name_key = ?")
                     .params(postId, key(name)).update();
         }
     }
 
     public List<String> tagsOf(long postId) {
         return jdbc.sql("""
-                SELECT g.name FROM post_tag pt JOIN tag g ON g.id = pt.tag_id
+                SELECT g.name FROM post_tags pt JOIN tags g ON g.id = pt.tag_id
                 WHERE pt.post_id = ? ORDER BY g.name""").param(postId).query(String.class).list();
     }
 }
