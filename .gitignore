@@ -1,12 +1,2 @@
-.env
-build/
-.gradle/
-node_modules/
-dist/
-.idea/
-*.iml
 .DS_Store
-backend/data/
-test-results/
-playwright-report/
-dump.rdb
+.idea/
