@@ -1,0 +1,11 @@
+flowchart LR
+  REQ["요청"] --> SEC["보안 필터<br/>세션으로 로그인한 회원 확인"]
+  SEC --> CTL["컨트롤러<br/>요청을 받고 결과를 돌려줌"]
+  CTL --> SVC["서비스<br/>규칙 검사와 처리<br/>(권한, 글자 수, 중복)"]
+  SVC --> REPO["저장소<br/>DB, Redis, 이미지 저장소에 읽고 쓰기"]
+  classDef a fill:#dbeafe,stroke:#3b82f6,color:#1e293b
+  classDef b fill:#ffedd5,stroke:#f97316,color:#1e293b
+  classDef c fill:#dcfce7,stroke:#22c55e,color:#1e293b
+  class REQ,SEC a
+  class CTL,SVC b
+  class REPO c

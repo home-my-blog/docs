@@ -1,0 +1,15 @@
+sequenceDiagram
+  autonumber
+  participant B as 👤 브라우저
+  participant S as ⚙️ 서버
+  participant D as 🗄️ PostgreSQL
+
+  B->>S: 이메일과 비밀번호
+  S->>D: 회원 조회, 비밀번호 해시 비교, 5회 연속 실패 잠금 확인
+  S->>D: 세션 저장 (세션 번호 발급)
+  S-->>B: 세션 번호를 쿠키로 전달 (HttpOnly, Secure)
+  Note over B,D: 이후 모든 요청
+  B->>S: 쿠키의 세션 번호
+  S->>D: 세션 표에서 누구인지 확인
+  S-->>B: 처리 결과
+  Note over S,D: 로그아웃이나 비밀번호 변경 때 서버가 세션을 지우면 즉시 무효

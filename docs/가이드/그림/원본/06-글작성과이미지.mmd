@@ -1,0 +1,14 @@
+sequenceDiagram
+  autonumber
+  participant B as 👤 브라우저
+  participant S as ⚙️ 서버
+  participant I as 🖼️ MinIO 가안
+  participant D as 🗄️ PostgreSQL
+
+  B->>S: 이미지 파일 업로드
+  S->>S: 로그인 확인, 형식과 용량(5MB) 검사, 안전한 새 파일 이름 생성
+  S->>I: 파일 저장
+  S->>D: 이미지 주소 기록
+  S-->>B: 이미지 주소 (본문 마크다운에 삽입)
+  B->>S: 글 저장 (마크다운 본문)
+  S->>D: 글 주인 확인 후 저장
