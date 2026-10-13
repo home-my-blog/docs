@@ -25,13 +25,16 @@
 | POST | `/api/auth/password-reset` |  | 인증번호로 비밀번호 새로 정하기 |
 | GET | `/api/auth/social/pending` |  | 소셜 가입 대기 정보 `{provider, email, nickname}`. 세션에 없으면 404 `SOCIAL_SIGNUP_NOT_FOUND` |
 | POST | `/api/auth/social/signup` |  | 소셜 가입 끝내기 `{nickname}`. 회원·블로그를 만들고 바로 로그인, 응답 201 `{id, member}` |
-| GET | `/api/me` | 필요 | 내 정보 |
+| GET | `/api/me` | 필요 | 내 정보 `{email, nickname, bio, createdAt, blogId, passwordSet, socialAccounts}` |
 | PATCH | `/api/me` | 필요 | 닉네임·소개 바꾸기 |
-| PUT | `/api/me/password` | 필요 | 비밀번호 바꾸기(다른 기기는 로그아웃) |
-| DELETE | `/api/me` | 필요 | 탈퇴(30일 뒤 익명화) |
+| PUT | `/api/me/password` | 필요 | 비밀번호 바꾸기(다른 기기는 로그아웃). `passwordSet`이 false면 400 `PASSWORD_NOT_SET` |
+| DELETE | `/api/me` | 필요 | 탈퇴(30일 뒤 익명화) `{password?, confirmText?, acknowledged}` |
 
 - `POST /api/auth/verifications`의 응답은 `{expiresAt}`이에요. 메일 모드가 `log`이고 `purpose`가 `signup`일 때만 `devCode`(인증번호)가 더 실려요. 비밀번호 찾기(`reset`) 번호는 어떤 모드에서도 응답에 싣지 않아요(v1.7.1).
-- 소셜 로그인은 `/api`가 아니라 Spring Security가 받는 주소예요. 화면의 버튼이 `/oauth2/authorization/{kakao|google}`로 보내고, 제공자는 `SITE_URL/login/oauth2/code/{kakao|google}`로 돌려보내요. 끝나면 `/`(로그인됨), `/social/signup`(닉네임 정하기), `/?social=withdrawn|no-email|failed`(로그인 안 됨) 중 하나로 가요. 이 주소들은 키가 설정된 제공자만 동작하고, 위 81개에 세지 않았어요.
+- 소셜 로그인은 `/api`가 아니라 Spring Security가 받는 주소예요. 화면의 버튼이 `/oauth2/authorization/{kakao|google}`로 보내고, 제공자는 `SITE_URL/login/oauth2/code/{kakao|google}`로 돌려보내요. 끝나면 `/`(로그인됨), `/social/signup`(닉네임 정하기), `/?social=withdrawn|no-email|failed`(로그인 안 됨), `/?social=restored`(복구하고 로그인됨) 중 하나로 가요. 이 주소들은 키가 설정된 제공자만 동작하고, 위 81개에 세지 않았어요.
+- v1.8.1부터 연결된 소셜 계정으로 들어온 회원이 탈퇴 신청 상태이고 비밀번호를 정한 적이 없으면(`passwordSet` false) 복구하고 로그인한 뒤 `/?social=restored`로 가요. 비밀번호가 있는 탈퇴 회원은 그대로 `/?social=withdrawn`이에요.
+- `GET /api/me`의 `passwordSet`은 직접 정한 비밀번호가 있는지(`members.password_set`), `socialAccounts`는 연결된 소셜 계정 제공자 목록(예: `["kakao"]`, 없으면 `[]`)이에요(v1.8.1).
+- `DELETE /api/me`: `acknowledged`가 true가 아니면 `ACKNOWLEDGE_REQUIRED`. `passwordSet`이 true면 `password`를 확인하고(틀리면 `CURRENT_PASSWORD_MISMATCH`), false면 `confirmText`가 앞뒤 공백을 뺀 뒤 "탈퇴합니다"와 같아야 해요. 다르면 `VALIDATION_FAILED`(`fields.confirmText`)예요(v1.8.1).
 
 ## 02 블로그와 다이어리
 

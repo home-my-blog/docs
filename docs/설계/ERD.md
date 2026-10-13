@@ -1,8 +1,8 @@
 # ERD (데이터베이스 구조)
 
-> 지금 코드(Flyway 마이그레이션 V1~V21)로 만든 PostgreSQL 스키마를 그대로 뽑아 그렸어요. 표 28개, 외래 키 45개예요.
+> 지금 코드(Flyway 마이그레이션 V1~V22)로 만든 PostgreSQL 스키마를 그대로 뽑아 그렸어요. 표 28개, 외래 키 45개예요.
 > 마이그레이션 파일이 바뀌면 이 문서도 다시 만들어요. 원본은 `backend/src/main/resources/db/migration/`이에요.
-> 같은 구조를 Crowfoot에서도 볼 수 있어요: [사각 (V20, 2026-10-13)](https://crowfoot.java21.net/workspaces/47/models/681). 이 링크는 V20 기준이라 V21의 `member_social_accounts`는 이 문서에서 봐요.
+> 같은 구조를 Crowfoot에서도 볼 수 있어요: [사각 (V20, 2026-10-13)](https://crowfoot.java21.net/workspaces/47/models/681). 이 링크는 V20 기준이라 V21의 `member_social_accounts`와 V22의 `members.password_set`은 이 문서에서 봐요.
 
 ## 읽는 법
 
@@ -36,7 +36,7 @@ erDiagram
 
 | 묶음 | 표 | 한글 이름 | 무엇 |
 |---|---|---|---|
-| 회원과 블로그 | [`members`](#members) | 회원 | 회원. 이메일, 비밀번호 해시, 닉네임, 로그인 실패 횟수와 잠금, 탈퇴·익명화 시각 |
+| 회원과 블로그 | [`members`](#members) | 회원 | 회원. 이메일, 비밀번호 해시와 비밀번호 설정 여부, 닉네임, 로그인 실패 횟수와 잠금, 탈퇴·익명화 시각 |
 | 회원과 블로그 | [`member_social_accounts`](#member_social_accounts) | 소셜 계정 연결 | 카카오 · 구글 계정과 회원의 연결. 소셜 계정 하나는 회원 한 명에게만 |
 | 회원과 블로그 | [`blogs`](#blogs) | 블로그 | 블로그. 회원마다 하나(owner_id UNIQUE) |
 | 회원과 블로그 | [`categories`](#categories) | 다이어리 | 다이어리. 블로그 안에서 글을 나눠 담는 칸, 공개 범위를 가짐 |
@@ -84,6 +84,7 @@ erDiagram
         timestamptz updated_at "고친 시각"
         timestamptz deleted_at "탈퇴 시각"
         timestamptz anonymized_at "익명화 시각"
+        boolean password_set "비밀번호 설정 여부"
     }
     member_social_accounts {
         bigint id PK "번호"
@@ -156,7 +157,7 @@ erDiagram
 
 한글 이름: **회원**
 
-회원. 이메일, 비밀번호 해시, 닉네임, 로그인 실패 횟수와 잠금, 탈퇴·익명화 시각
+회원. 이메일, 비밀번호 해시와 비밀번호 설정 여부, 닉네임, 로그인 실패 횟수와 잠금, 탈퇴·익명화 시각
 
 | 칸 | 한글 이름 | 형식 | 비어도 됨 | 기본값 | 키 |
 |---|---|---|---|---|---|
@@ -172,8 +173,11 @@ erDiagram
 | `updated_at` | 고친 시각 | timestamp with time zone |  |  |  |
 | `deleted_at` | 탈퇴 시각 | timestamp with time zone | 예 |  |  |
 | `anonymized_at` | 익명화 시각 | timestamp with time zone | 예 |  |  |
+| `password_set` | 비밀번호 설정 여부 | boolean |  | `true` |  |
 
 겹치면 안 되는 조합: (`email`), (`nickname_key`)
+
+`password_set`은 회원이 직접 정한 비밀번호가 있는지예요(V22, v1.8.1). 카카오 · 구글로 가입하면 `false`로 시작하고, 비밀번호 찾기나 비밀번호 변경으로 비밀번호를 저장하면 `true`가 돼요. V22 전에 있던 회원은 모두 `true`예요. `false`인 회원은 내 정보에서 비밀번호 변경이 숨겨지고, 탈퇴할 때 비밀번호 대신 "탈퇴합니다"를 적어요.
 
 ### member_social_accounts
 
