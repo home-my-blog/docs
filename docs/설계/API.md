@@ -1,6 +1,6 @@
 # API 목록
 
-> 지금 코드의 컨트롤러에서 뽑은 API 79개예요. 화면(React)이 이 주소들을 불러요. 자세한 동작은 같은 번호의 [기능](../기능/00-목차.md)·[원리](../원리/00-목차.md) 문서에 있어요.
+> 지금 코드의 컨트롤러에서 뽑은 API 81개예요. 화면(React)이 이 주소들을 불러요. 자세한 동작은 같은 번호의 [기능](../기능/00-목차.md)·[원리](../원리/00-목차.md) 문서에 있어요.
 
 ## 공통 규칙
 
@@ -9,7 +9,7 @@
 - **CSRF**: GET이 아닌 요청은 `XSRF-TOKEN` 쿠키 값을 `X-XSRF-TOKEN` 헤더에 담아 보내야 해요. 화면은 시작할 때 `GET /api/csrf`로 쿠키를 받아요.
 - **권한**: 로그인만으로 끝나지 않고 "주인만", "쓴 사람만" 같은 확인은 서비스 코드가 해요. 남의 것이면 403이나 404예요.
 - **오류 모양**: `{ "error": { "code": "VALIDATION_FAILED", "message": "…", "fields": { "칸": "이유" } } }`. `code` 목록은 `ErrorCode.java`에 있어요.
-- 로그인 규칙은 `SecurityConfig`가 정해요: `/api/me/**`, `/api/manage/**`, 글 고치기 원문은 로그인 필요, 나머지 GET은 누구나, 가입·로그인 관련 POST는 누구나, 그 밖의 쓰기는 로그인 필요.
+- 로그인 규칙은 `SecurityConfig`가 정해요: `/api/me/**`, `/api/manage/**`, 글 고치기 원문은 로그인 필요, 나머지 GET은 누구나, 가입·로그인 관련 POST(소셜 가입 포함)는 누구나, 그 밖의 쓰기는 로그인 필요.
 
 ## 01 회원과 로그인
 
@@ -23,10 +23,18 @@
 | POST | `/api/auth/logout` | 필요 | 로그아웃 |
 | GET | `/api/auth/me` |  | 지금 로그인한 회원(아니면 204) |
 | POST | `/api/auth/password-reset` |  | 인증번호로 비밀번호 새로 정하기 |
-| GET | `/api/me` | 필요 | 내 정보 |
+| GET | `/api/auth/social/pending` |  | 소셜 가입 대기 정보 `{provider, email, nickname}`. 세션에 없으면 404 `SOCIAL_SIGNUP_NOT_FOUND` |
+| POST | `/api/auth/social/signup` |  | 소셜 가입 끝내기 `{nickname}`. 회원·블로그를 만들고 바로 로그인, 응답 201 `{id, member}` |
+| GET | `/api/me` | 필요 | 내 정보 `{email, nickname, bio, createdAt, blogId, passwordSet, socialAccounts}` |
 | PATCH | `/api/me` | 필요 | 닉네임·소개 바꾸기 |
-| PUT | `/api/me/password` | 필요 | 비밀번호 바꾸기(다른 기기는 로그아웃) |
-| DELETE | `/api/me` | 필요 | 탈퇴(30일 뒤 익명화) |
+| PUT | `/api/me/password` | 필요 | 비밀번호 바꾸기(다른 기기는 로그아웃). `passwordSet`이 false면 400 `PASSWORD_NOT_SET` |
+| DELETE | `/api/me` | 필요 | 탈퇴(30일 뒤 익명화) `{password?, confirmText?, acknowledged}` |
+
+- `POST /api/auth/verifications`의 응답은 `{expiresAt}`이에요. 메일 모드가 `log`이고 `purpose`가 `signup`일 때만 `devCode`(인증번호)가 더 실려요. 비밀번호 찾기(`reset`) 번호는 어떤 모드에서도 응답에 싣지 않아요(v1.7.1).
+- 소셜 로그인은 `/api`가 아니라 Spring Security가 받는 주소예요. 화면의 버튼이 `/oauth2/authorization/{kakao|google}`로 보내고, 제공자는 `SITE_URL/login/oauth2/code/{kakao|google}`로 돌려보내요. 끝나면 `/`(로그인됨), `/social/signup`(닉네임 정하기), `/?social=withdrawn|no-email|failed`(로그인 안 됨), `/?social=restored`(복구하고 로그인됨) 중 하나로 가요. 이 주소들은 키가 설정된 제공자만 동작하고, 위 81개에 세지 않았어요.
+- v1.8.1부터 연결된 소셜 계정으로 들어온 회원이 탈퇴 신청 상태이고 비밀번호를 정한 적이 없으면(`passwordSet` false) 복구하고 로그인한 뒤 `/?social=restored`로 가요. 비밀번호가 있는 탈퇴 회원은 그대로 `/?social=withdrawn`이에요.
+- `GET /api/me`의 `passwordSet`은 직접 정한 비밀번호가 있는지(`members.password_set`), `socialAccounts`는 연결된 소셜 계정 제공자 목록(예: `["kakao"]`, 없으면 `[]`)이에요(v1.8.1).
+- `DELETE /api/me`: `acknowledged`가 true가 아니면 `ACKNOWLEDGE_REQUIRED`. `passwordSet`이 true면 `password`를 확인하고(틀리면 `CURRENT_PASSWORD_MISMATCH`), false면 `confirmText`가 앞뒤 공백을 뺀 뒤 "탈퇴합니다"와 같아야 해요. 다르면 `VALIDATION_FAILED`(`fields.confirmText`)예요(v1.8.1).
 
 ## 02 블로그와 다이어리
 
@@ -127,5 +135,5 @@
 
 | 메서드 | 주소 | 로그인 | 하는 일 |
 |---|---|---|---|
-| GET | `/api/config` |  | 화면이 쓰는 설정값(글자 수 한도, 자동 저장 간격, 인기 검색어 새로고침 간격 등) |
+| GET | `/api/config` |  | 화면이 쓰는 설정값(글자 수 한도, 자동 저장 간격, 인기 검색어 새로고침 간격 등). `socialLogin`: 켜진 소셜 로그인 제공자 목록(`["kakao", "google"]` 중 client id가 설정된 것, 없으면 `[]`) |
 | GET | `/api/csrf` |  | 앱 시작 시 한 번 불러 XSRF-TOKEN 쿠키를 받는다. |
