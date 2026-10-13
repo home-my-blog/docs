@@ -2,7 +2,7 @@
 
 > 지금 코드(Flyway 마이그레이션 V1~V22)로 만든 PostgreSQL 스키마를 그대로 뽑아 그렸어요. 표 28개, 외래 키 45개예요.
 > 마이그레이션 파일이 바뀌면 이 문서도 다시 만들어요. 원본은 `backend/src/main/resources/db/migration/`이에요.
-> 같은 구조를 Crowfoot에서도 볼 수 있어요: [사각 (V20, 2026-10-13)](https://crowfoot.java21.net/workspaces/47/models/681). 이 링크는 V20 기준이라 V21의 `member_social_accounts`와 V22의 `members.password_set`은 이 문서에서 봐요.
+> 같은 구조를 Crowfoot에서도 볼 수 있어요: [사각 ERD](https://crowfoot.java21.net/workspaces/47/models/681). V22까지 반영돼 있어요 (문서 이름의 "V20"은 처음 만들 때 붙인 이름이에요).
 
 ## 읽는 법
 
