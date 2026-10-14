@@ -1,6 +1,6 @@
 # API 목록
 
-> 지금 코드의 컨트롤러에서 뽑은 API 81개예요. 화면(React)이 이 주소들을 불러요. 자세한 동작은 같은 번호의 [기능](../기능/00-목차.md)·[원리](../원리/00-목차.md) 문서에 있어요.
+> 지금 코드의 컨트롤러에서 뽑은 API 82개예요. 화면(React)이 이 주소들을 불러요. 자세한 동작은 같은 번호의 [기능](../기능/00-목차.md)·[원리](../원리/00-목차.md) 문서에 있어요.
 
 ## 공통 규칙
 
@@ -28,13 +28,20 @@
 | GET | `/api/me` | 필요 | 내 정보 `{email, nickname, bio, createdAt, blogId, passwordSet, socialAccounts}` |
 | PATCH | `/api/me` | 필요 | 닉네임·소개 바꾸기 |
 | PUT | `/api/me/password` | 필요 | 비밀번호 바꾸기(다른 기기는 로그아웃). `passwordSet`이 false면 400 `PASSWORD_NOT_SET` |
-| DELETE | `/api/me` | 필요 | 탈퇴(30일 뒤 익명화) `{password?, confirmText?, acknowledged}` |
+| DELETE | `/api/me` | 필요 | 비밀번호로 탈퇴(30일 뒤 익명화) `{password, acknowledged}`. 소셜 가입 회원이면 400 `SOCIAL_WITHDRAW_ONLY` |
+| POST | `/api/me/withdraw/social` | 필요 | 소셜 가입 회원의 탈퇴 시작 `{acknowledged: true}` → `{redirectUrl: "/oauth2/authorization/{provider}"}`(v1.9.1). 비밀번호 회원이면 400 `PASSWORD_WITHDRAW_ONLY` |
 
 - `POST /api/auth/verifications`의 응답은 `{expiresAt}`이에요. 메일 모드가 `log`이고 `purpose`가 `signup`일 때만 `devCode`(인증번호)가 더 실려요. 비밀번호 찾기(`reset`) 번호는 어떤 모드에서도 응답에 싣지 않아요(v1.7.1).
-- 소셜 로그인은 `/api`가 아니라 Spring Security가 받는 주소예요. 화면의 버튼이 `/oauth2/authorization/{kakao|google}`로 보내고, 제공자는 `SITE_URL/login/oauth2/code/{kakao|google}`로 돌려보내요. 끝나면 `/`(로그인됨), `/social/signup`(닉네임 정하기), `/?social=withdrawn|no-email|failed`(로그인 안 됨), `/?social=restored`(복구하고 로그인됨) 중 하나로 가요. 이 주소들은 키가 설정된 제공자만 동작하고, 위 81개에 세지 않았어요.
+- 계정은 가입한 방법으로만 로그인해요(v1.9.0).
+  - `purpose: "signup"`인데 카카오 · 구글로 가입한 이메일이면 409 `EMAIL_TAKEN`이고, `message`가 "카카오로 가입한 이메일입니다. 카카오로 로그인해 주세요"처럼 제공자 이름을 넣은 문구예요. `fields.email`에도 같은 문구가, `error.provider`에 `kakao`나 `google`이 실려요.
+  - `purpose: "reset"`인데 카카오 · 구글로 가입한 계정이면 응답은 똑같이 `{expiresAt}`이지만 인증번호를 만들지 않고, 어느 제공자로 로그인하면 되는지 알려 주는 메일을 보내요. `POST /api/auth/password-reset`도 비밀번호가 있는 회원(`passwordSet` true)만 바꿔요.
+  - `POST /api/auth/login`(과 `/api/auth/restore`)에 카카오 · 구글로 가입한 계정의 이메일을 넣으면 409 `SOCIAL_ACCOUNT`, `message`는 "카카오로 가입한 계정입니다. 카카오로 로그인해 주세요"처럼 나오고 `error.provider`가 실려요.
+- 소셜 로그인은 `/api`가 아니라 Spring Security가 받는 주소예요. 화면의 버튼이 `/oauth2/authorization/{kakao|google}`로 보내고, 제공자는 `SITE_URL/login/oauth2/code/{kakao|google}`로 돌려보내요. 끝나면 `/`(로그인됨), `/social/signup`(닉네임 정하기), `/?social=withdrawn|no-email|failed`(로그인 안 됨), `/?social=email-account|kakao-account|google-account`(같은 이메일이 다른 방법으로 가입돼 있어 로그인 안 됨, v1.9.0), `/?social=restored`(복구하고 로그인됨) 중 하나로 가요. 탈퇴 확인 중이면 `/?social=withdraw-done`(탈퇴함), `/me?social=withdraw-mismatch`(다른 계정이거나 시간이 지나 탈퇴 안 함), `/me?social=withdraw-cancelled`(제공자 화면에서 취소)로 가요(v1.9.1). 이 주소들은 키가 설정된 제공자만 동작하고, 위 82개에 세지 않았어요.
 - v1.8.1부터 연결된 소셜 계정으로 들어온 회원이 탈퇴 신청 상태이고 비밀번호를 정한 적이 없으면(`passwordSet` false) 복구하고 로그인한 뒤 `/?social=restored`로 가요. 비밀번호가 있는 탈퇴 회원은 그대로 `/?social=withdrawn`이에요.
-- `GET /api/me`의 `passwordSet`은 직접 정한 비밀번호가 있는지(`members.password_set`), `socialAccounts`는 연결된 소셜 계정 제공자 목록(예: `["kakao"]`, 없으면 `[]`)이에요(v1.8.1).
-- `DELETE /api/me`: `acknowledged`가 true가 아니면 `ACKNOWLEDGE_REQUIRED`. `passwordSet`이 true면 `password`를 확인하고(틀리면 `CURRENT_PASSWORD_MISMATCH`), false면 `confirmText`가 앞뒤 공백을 뺀 뒤 "탈퇴합니다"와 같아야 해요. 다르면 `VALIDATION_FAILED`(`fields.confirmText`)예요(v1.8.1).
+- `GET /api/me`의 `passwordSet`은 직접 정한 비밀번호가 있는지(`members.password_set`), `socialAccounts`는 연결된 소셜 계정 제공자 목록(예: `["kakao"]`, 없으면 `[]`)이에요(v1.8.1). v1.9.0부터는 소셜 가입 회원에게만 가입한 제공자 하나가 있고, 이메일 가입 회원은 `[]`예요.
+- `DELETE /api/me` `{password, acknowledged}`: `acknowledged`가 true가 아니면 `ACKNOWLEDGE_REQUIRED`. `passwordSet`이 false(소셜 가입 회원)면 400 `SOCIAL_WITHDRAW_ONLY`("소셜 로그인으로 가입한 계정은 가입한 소셜 계정으로 다시 확인하고 탈퇴합니다")예요. 그 밖에는 `password`를 확인하고(틀리면 `CURRENT_PASSWORD_MISMATCH`) 탈퇴해요. v1.8.1의 `confirmText`("탈퇴합니다")는 v1.9.1에서 없어졌어요.
+- `POST /api/me/withdraw/social` `{acknowledged: true}`(v1.9.1): `acknowledged`가 true가 아니면 `ACKNOWLEDGE_REQUIRED`, `passwordSet`이 true면 400 `PASSWORD_WITHDRAW_ONLY`("비밀번호를 입력해 탈퇴해 주세요")예요. 통과하면 세션에 10분짜리 탈퇴 확인 정보를 남기고 `{redirectUrl}`을 돌려줘요. 화면은 그 주소로 이동하고, 제공자에서 돌아온 결과는 위의 `withdraw-*` 주소로 알려요. 이때 제공자에게 다시 로그인을 요청해요(카카오 `prompt=login`, 구글 `prompt=select_account`).
+- 새 오류 코드(v1.9.0~v1.9.1): `SOCIAL_ACCOUNT`(409, 소셜 가입 계정에 이메일 로그인), `SOCIAL_WITHDRAW_ONLY`(400), `PASSWORD_WITHDRAW_ONLY`(400). `PASSWORD_NOT_SET`(400)의 문구는 "소셜 로그인으로 가입한 계정은 비밀번호가 없습니다"예요.
 
 ## 02 블로그와 다이어리
 
