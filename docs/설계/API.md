@@ -89,8 +89,8 @@
 | GET | `/api/blogs/{blogId}/pinned` |  | 블로그 첫 화면 위쪽 대표글 |
 | PUT | `/api/posts/{id}/like` | 필요 | 좋아요 켜고 끄기(내 글은 안 됨) |
 | POST | `/api/posts/{id}/reports` | 필요 | 신고하기(한 글에 한 번) |
-| GET | `/api/posts/{postId}/comments` |  | 댓글과 답글 목록 |
-| POST | `/api/posts/{postId}/comments` | 필요 | 댓글이나 답글 달기 |
+| GET | `/api/posts/{postId}/comments` |  | 댓글과 답글 목록. 줄마다 `secret`, `hidden`(볼 수 없는 비밀 댓글이면 true, 이때 `body` · `author`는 null) |
+| POST | `/api/posts/{postId}/comments` | 필요 | 댓글이나 답글 달기. `{ body, parentId?, secret? }`, `secret: true`면 비밀 댓글(비밀 댓글의 답글은 늘 비밀) |
 | DELETE | `/api/comments/{id}` | 필요 | 댓글 지우기(쓴 사람이나 블로그 주인, 답글도 같이) |
 | PUT | `/api/posts/{id}/bookmark` | 필요 | 꽂거나, 이미 꽂은 글이면 폴더만 옮긴다. folderId가 없으면 미분류. 응답은 꽂힌 폴더. |
 | DELETE | `/api/posts/{id}/bookmark` | 필요 | 책갈피 빼기 |

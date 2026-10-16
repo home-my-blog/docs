@@ -1,8 +1,8 @@
 # ERD (데이터베이스 구조)
 
-> 지금 코드(Flyway 마이그레이션 V1~V24)로 만든 PostgreSQL 스키마를 그대로 뽑아 그렸어요. V23 · V24는 데이터만 바꿔서 표 구조는 V22 때와 같아요. 표 28개, 외래 키 45개예요.
+> 지금 코드(Flyway 마이그레이션 V1~V25)로 만든 PostgreSQL 스키마를 그대로 뽑아 그렸어요. V23 · V24는 데이터만 바꿨고, V25는 `comments.secret`(비밀 댓글) 칸 하나를 더했어요. 표 28개, 외래 키 45개예요.
 > 마이그레이션 파일이 바뀌면 이 문서도 다시 만들어요. 원본은 `backend/src/main/resources/db/migration/`이에요.
-> 같은 구조를 Crowfoot에서도 볼 수 있어요: [사각 ERD](https://crowfoot.java21.net/workspaces/47/models/681). V22까지 반영돼 있고, V23 · V24는 구조를 바꾸지 않아서 지금 구조와 같아요 (문서 이름의 "V20"은 처음 만들 때 붙인 이름이에요).
+> 같은 구조를 Crowfoot에서도 볼 수 있어요: [사각 ERD](https://crowfoot.java21.net/workspaces/47/models/681). V25(`comments.secret`)까지 반영돼 있어요 (문서 이름의 "V20"은 처음 만들 때 붙인 이름이에요).
 
 ## 읽는 법
 
@@ -46,7 +46,7 @@ erDiagram
 | 글 | [`tags`](#tags) | 태그 | 태그 이름(소문자로 맞춘 name_key로 겹침 막기) |
 | 글 | [`post_tags`](#post_tags) | 글 태그 | 글과 태그를 잇는 표 |
 | 글 | [`drafts`](#drafts) | 임시저장 글 | 임시저장 글 |
-| 읽기와 소통 | [`comments`](#comments) | 댓글 | 댓글과 답글(parent_id가 있으면 답글) |
+| 읽기와 소통 | [`comments`](#comments) | 댓글 | 댓글과 답글(parent_id가 있으면 답글), 비밀 댓글(secret) |
 | 읽기와 소통 | [`post_likes`](#post_likes) | 좋아요 | 좋아요. 한 사람이 한 글에 한 번 |
 | 읽기와 소통 | [`bookmark_folders`](#bookmark_folders) | 책갈피 폴더 | 책갈피 폴더 |
 | 읽기와 소통 | [`bookmarks`](#bookmarks) | 책갈피 | 책갈피. 폴더가 없으면 미분류 |
@@ -431,6 +431,7 @@ erDiagram
         varchar body "본문"
         timestamptz created_at "만든 시각"
         bigint parent_id FK "부모 댓글 번호"
+        boolean secret "비밀 댓글"
     }
     post_likes {
         bigint post_id PK,FK "글 번호"
@@ -488,7 +489,7 @@ erDiagram
 
 한글 이름: **댓글**
 
-댓글과 답글(parent_id가 있으면 답글)
+댓글과 답글(parent_id가 있으면 답글). `secret`이 true면 비밀 댓글이라 쓴 사람 · 블로그 주인 · 원 댓글 작성자만 내용을 봐요(V25, v1.11.0). 비밀 댓글의 답글도 늘 true예요.
 
 | 칸 | 한글 이름 | 형식 | 비어도 됨 | 기본값 | 키 |
 |---|---|---|---|---|---|
@@ -498,6 +499,7 @@ erDiagram
 | `body` | 본문 | character varying(500) |  |  |  |
 | `created_at` | 만든 시각 | timestamp with time zone |  |  |  |
 | `parent_id` | 부모 댓글 번호 | bigint | 예 |  | FK → `comments.id` (같이 지움) |
+| `secret` | 비밀 댓글 | boolean |  | false |  |
 
 ### post_likes
 
