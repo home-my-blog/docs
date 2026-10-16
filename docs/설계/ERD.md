@@ -1,8 +1,8 @@
 # ERD (데이터베이스 구조)
 
-> 지금 코드(Flyway 마이그레이션 V1~V22)로 만든 PostgreSQL 스키마를 그대로 뽑아 그렸어요. 표 28개, 외래 키 45개예요.
+> 지금 코드(Flyway 마이그레이션 V1~V24)로 만든 PostgreSQL 스키마를 그대로 뽑아 그렸어요. V23 · V24는 데이터만 바꿔서 표 구조는 V22 때와 같아요. 표 28개, 외래 키 45개예요.
 > 마이그레이션 파일이 바뀌면 이 문서도 다시 만들어요. 원본은 `backend/src/main/resources/db/migration/`이에요.
-> 같은 구조를 Crowfoot에서도 볼 수 있어요: [사각 ERD](https://crowfoot.java21.net/workspaces/47/models/681). V22까지 반영돼 있어요 (문서 이름의 "V20"은 처음 만들 때 붙인 이름이에요).
+> 같은 구조를 Crowfoot에서도 볼 수 있어요: [사각 ERD](https://crowfoot.java21.net/workspaces/47/models/681). V22까지 반영돼 있고, V23 · V24는 구조를 바꾸지 않아서 지금 구조와 같아요 (문서 이름의 "V20"은 처음 만들 때 붙인 이름이에요).
 
 ## 읽는 법
 
